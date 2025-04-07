@@ -27,25 +27,39 @@ export interface Transaction {
   created_at: Date;
 }
 
+export async function dropTables() {
+  await pool.query("DROP TABLE IF EXISTS transactions");
+  await pool.query("DROP TABLE IF EXISTS targets");
+  console.log("Tables dropped successfully");
+}
+
 export async function createTargetTable() {
-  await pool.query(`
+  const query = `
     CREATE TABLE IF NOT EXISTS targets (
       id SERIAL PRIMARY KEY,
       name VARCHAR(50) NOT NULL,
       total_assets DECIMAL(15,2) DEFAULT 0,
-      profit_loss DECIMAL(15,2) DEFAULT 0,
-      profit_loss_ratio DECIMAL(5,2) DEFAULT 0,
       total_buy_amount DECIMAL(15,2) DEFAULT 0,
       total_sell_amount DECIMAL(15,2) DEFAULT 0,
+      profit_loss DECIMAL(15,2) DEFAULT 0,
+      profit_loss_ratio DECIMAL(5,2) DEFAULT 0,
       average_cost DECIMAL(15,2) DEFAULT 0,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
+    )
+  `;
+
+  try {
+    await pool.query(query);
+    console.log("Target table created successfully");
+  } catch (error) {
+    console.error("Error creating target table:", error);
+    throw error;
+  }
 }
 
 export async function createTransactionTable() {
-  await pool.query(`
+  const query = `
     CREATE TABLE IF NOT EXISTS transactions (
       id SERIAL PRIMARY KEY,
       target_id INTEGER REFERENCES targets(id) ON DELETE CASCADE,
@@ -53,13 +67,28 @@ export async function createTransactionTable() {
       quantity DECIMAL(15,2) NOT NULL,
       price DECIMAL(15,2) NOT NULL,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
+    )
+  `;
+
+  try {
+    await pool.query(query);
+    console.log("Transaction table created successfully");
+  } catch (error) {
+    console.error("Error creating transaction table:", error);
+    throw error;
+  }
 }
 
 export async function initDb() {
-  await createTargetTable();
-  await createTransactionTable();
+  try {
+    await dropTables();
+    await createTargetTable();
+    await createTransactionTable();
+    console.log("Database initialized successfully");
+  } catch (error) {
+    console.error("Error initializing database:", error);
+    throw error;
+  }
 }
 
 export { pool };

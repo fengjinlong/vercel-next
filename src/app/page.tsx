@@ -104,14 +104,21 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create transaction");
+        const errorData = await response.json();
+
+        if (errorData.code === "INSUFFICIENT_ASSETS") {
+          message.error(errorData.details);
+        } else {
+          message.error(errorData.error || "操作失败");
+        }
+        return;
       }
 
       message.success("Transaction created successfully");
       setTransactionModalVisible(false);
       fetchTargets();
     } catch (error) {
-      message.error("Failed to create transaction");
+      message.error("网络错误，请稍后重试");
     }
   };
 
@@ -269,13 +276,13 @@ export default function Home() {
         </Form>
       </div>
 
-      <div className="mb-4">
+      {/* <div className="mb-4">
         <Input.Search
           placeholder="Search targets"
           onSearch={(value) => setSearch(value)}
           style={{ width: 300 }}
         />
-      </div>
+      </div> */}
 
       <Table
         columns={columns}
