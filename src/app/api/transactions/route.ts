@@ -46,40 +46,67 @@ export async function POST(request: Request) {
     try {
       await client.query("BEGIN");
 
-      // Insert transaction
+      // Create transaction
       const transactionResult = await client.query(
-        "INSERT INTO transactions (target_id, type, quantity, price) VALUES ($1, $2, $3, $4) RETURNING *",
+        `INSERT INTO transactions (target_id, type, quantity, price)
+         VALUES ($1, $2, $3, $4)
+         RETURNING *`,
         [targetId, type, quantity, price]
       );
 
-      // Update target's total assets and profit/loss
+      // Get current target state
       const targetResult = await client.query(
         "SELECT * FROM targets WHERE id = $1",
         [targetId]
       );
 
-      const target = targetResult.rows[0];
-      const transactionAmount = quantity * price;
-      let newTotalAssets = target.total_assets;
-
-      if (type === "buy") {
-        newTotalAssets += transactionAmount;
-      } else {
-        newTotalAssets -= transactionAmount;
+      if (targetResult.rows.length === 0) {
+        throw new Error("Target not found");
       }
 
-      // Calculate profit/loss
-      const profitLoss = newTotalAssets - target.total_assets;
-      const profitLossRatio = (profitLoss / target.total_assets) * 100;
+      const target = targetResult.rows[0];
+      let newTotalAssets = target.total_assets;
+      let newTotalBuyAmount = target.total_buy_amount;
+      let newTotalSellAmount = target.total_sell_amount;
+      let newAverageCost = target.average_cost;
+
+      if (type === "buy") {
+        newTotalAssets += quantity;
+        newTotalBuyAmount += quantity * price;
+        // 计算新的平均成本
+        newAverageCost = newTotalBuyAmount / newTotalAssets;
+      } else {
+        newTotalAssets -= quantity;
+        newTotalSellAmount += quantity * price;
+      }
+
+      const profitLoss =
+        newTotalSellAmount -
+        newTotalBuyAmount * (newTotalSellAmount / (newTotalBuyAmount + 0.0001));
+      const profitLossRatio = (
+        (profitLoss / (newTotalBuyAmount + 0.0001)) *
+        100
+      ).toFixed(2);
 
       await client.query(
         `UPDATE targets 
          SET total_assets = $1,
              profit_loss = $2,
              profit_loss_ratio = $3,
+             total_buy_amount = $4,
+             total_sell_amount = $5,
+             average_cost = $6,
              updated_at = CURRENT_TIMESTAMP
-         WHERE id = $4`,
-        [newTotalAssets, profitLoss, profitLossRatio, targetId]
+         WHERE id = $7`,
+        [
+          newTotalAssets,
+          profitLoss,
+          profitLossRatio,
+          newTotalBuyAmount,
+          newTotalSellAmount,
+          newAverageCost,
+          targetId,
+        ]
       );
 
       await client.query("COMMIT");

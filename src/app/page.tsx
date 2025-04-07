@@ -117,36 +117,94 @@ export default function Home() {
 
   const columns = [
     {
-      title: "Name",
+      title: "名称",
       dataIndex: "name",
       key: "name",
     },
     {
-      title: "Total Assets",
+      title: "总买入金额",
+      dataIndex: "total_buy_amount",
+      key: "total_buy_amount",
+      render: (value: any) => {
+        const numValue = typeof value === "string" ? parseFloat(value) : value;
+        return (
+          <span style={{ color: "#1890ff" }}>
+            ${!isNaN(numValue) ? numValue.toFixed(2) : "0.00"}
+          </span>
+        );
+      },
+    },
+    {
+      title: "总卖出金额",
+      dataIndex: "total_sell_amount",
+      key: "total_sell_amount",
+      render: (value: any) => {
+        const numValue = typeof value === "string" ? parseFloat(value) : value;
+        return (
+          <span style={{ color: "#52c41a" }}>
+            ${!isNaN(numValue) ? numValue.toFixed(2) : "0.00"}
+          </span>
+        );
+      },
+    },
+    {
+      title: "总数量",
       dataIndex: "total_assets",
       key: "total_assets",
-      render: (value: number) => `$${value}`,
+      render: (value: any) => {
+        const numValue = typeof value === "string" ? parseFloat(value) : value;
+        return (
+          <span style={{ fontWeight: "bold" }}>
+            {!isNaN(numValue) ? numValue.toFixed(2) : "0.00"}
+          </span>
+        );
+      },
     },
     {
-      title: "Profit/Loss",
+      title: "平均成本",
+      dataIndex: "average_cost",
+      key: "average_cost",
+      render: (value: any) => {
+        const numValue = typeof value === "string" ? parseFloat(value) : value;
+        return (
+          <span style={{ color: "#722ed1" }}>
+            ${!isNaN(numValue) ? numValue.toFixed(2) : "0.00"}
+          </span>
+        );
+      },
+    },
+    {
+      title: "盈亏",
       dataIndex: "profit_loss",
       key: "profit_loss",
-      render: (value: number) => (
-        <span style={{ color: value >= 0 ? "#52c41a" : "#f5222d" }}>
-          ${value}
-        </span>
-      ),
+      render: (value: any) => {
+        const numValue = typeof value === "string" ? parseFloat(value) : value;
+        return (
+          <span
+            style={{
+              color: !isNaN(numValue) && numValue >= 0 ? "#52c41a" : "#f5222d",
+            }}
+          >
+            ${!isNaN(numValue) ? numValue.toFixed(2) : "0.00"}
+          </span>
+        );
+      },
     },
     {
-      title: "P/L Ratio",
+      title: "盈亏比例",
       dataIndex: "profit_loss_ratio",
       key: "profit_loss_ratio",
-      render: (value: number) => (
-        <Tag color={value >= 0 ? "success" : "error"}>{value}%</Tag>
-      ),
+      render: (value: any) => {
+        const numValue = typeof value === "string" ? parseFloat(value) : value;
+        return (
+          <Tag color={!isNaN(numValue) && numValue >= 0 ? "success" : "error"}>
+            {!isNaN(numValue) ? numValue.toFixed(2) : "0.00"}%
+          </Tag>
+        );
+      },
     },
     {
-      title: "Actions",
+      title: "操作",
       key: "actions",
       render: (_: any, record: Target) => (
         <>
@@ -160,7 +218,7 @@ export default function Home() {
             }}
             style={{ marginRight: 8 }}
           >
-            Buy
+            买入
           </Button>
           <Button
             type="default"
@@ -172,15 +230,15 @@ export default function Home() {
             }}
             style={{ marginRight: 8 }}
           >
-            Sell
+            卖出
           </Button>
           <Popconfirm
-            title="Are you sure you want to delete this target?"
+            title="确定要删除这个目标吗？"
             onConfirm={() => handleDelete(record.id)}
             icon={<ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />}
           >
             <Button type="primary" danger icon={<DeleteOutlined />}>
-              Delete
+              删除
             </Button>
           </Popconfirm>
         </>

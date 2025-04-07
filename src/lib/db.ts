@@ -11,6 +11,9 @@ export interface Target {
   total_assets: number;
   profit_loss: number;
   profit_loss_ratio: number;
+  total_buy_amount: number;
+  total_sell_amount: number;
+  average_cost: number;
   created_at: Date;
   updated_at: Date;
 }
@@ -32,6 +35,9 @@ export async function createTargetTable() {
       total_assets DECIMAL(15,2) DEFAULT 0,
       profit_loss DECIMAL(15,2) DEFAULT 0,
       profit_loss_ratio DECIMAL(5,2) DEFAULT 0,
+      total_buy_amount DECIMAL(15,2) DEFAULT 0,
+      total_sell_amount DECIMAL(15,2) DEFAULT 0,
+      average_cost DECIMAL(15,2) DEFAULT 0,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
