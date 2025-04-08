@@ -1,0 +1,201 @@
+.loginContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.gradientBackground {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg,
+      #ffb6c1 0%,
+      #f8ceec 25%,
+      #a6ddf0 50%,
+      #b5e8d5 75%,
+      #e6f8b5 100%);
+  background-size: 400% 400%;
+  animation: gradientMove 15s ease infinite;
+  z-index: -2;
+}
+
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.floatingElements {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.floatingElement {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.4;
+  animation: float 20s linear infinite;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(100vh) translateX(0) rotate(0deg);
+  }
+
+  100% {
+    transform: translateY(-20vh) translateX(20vw) rotate(360deg);
+  }
+}
+
+.bubble1 {
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.2);
+  left: 10%;
+  animation-duration: 15s;
+  animation-delay: 0s;
+}
+
+.bubble2 {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.15);
+  left: 20%;
+  animation-duration: 18s;
+  animation-delay: 2s;
+}
+
+.bubble3 {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.1);
+  left: 35%;
+  animation-duration: 12s;
+  animation-delay: 1s;
+}
+
+.bubble4 {
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.1);
+  left: 50%;
+  animation-duration: 20s;
+  animation-delay: 0s;
+}
+
+.bubble5 {
+  width: 55px;
+  height: 55px;
+  background: rgba(255, 255, 255, 0.15);
+  left: 65%;
+  animation-duration: 17s;
+  animation-delay: 3s;
+}
+
+.bubble6 {
+  width: 70px;
+  height: 70px;
+  background: rgba(255, 255, 255, 0.2);
+  left: 80%;
+  animation-duration: 14s;
+  animation-delay: 4s;
+}
+
+.petal1,
+.petal2,
+.petal3 {
+  background: rgba(255, 182, 193, 0.2);
+  width: 25px;
+  height: 25px;
+  border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+  animation: floatPetal 15s linear infinite;
+}
+
+.petal1 {
+  left: 15%;
+  animation-duration: 16s;
+  animation-delay: 1s;
+}
+
+.petal2 {
+  left: 45%;
+  animation-duration: 13s;
+  animation-delay: 3s;
+}
+
+.petal3 {
+  left: 75%;
+  animation-duration: 18s;
+  animation-delay: 5s;
+}
+
+@keyframes floatPetal {
+  0% {
+    transform: translateY(100vh) translateX(0) rotate(0deg);
+  }
+
+  100% {
+    transform: translateY(-20vh) translateX(30vw) rotate(720deg);
+  }
+}
+
+.formCard {
+  width: 100%;
+  max-width: 400px;
+  padding: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: transform 0.3s ease;
+}
+
+.formCard:hover {
+  transform: translateY(-5px);
+}
+
+.formTitle {
+  text-align: center;
+  margin-bottom: 24px;
+  color: #8e6dae;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.loginButton {
+  width: 100%;
+  height: 46px;
+  background: linear-gradient(90deg, #a6c0fe 0%, #f68084 100%);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.loginButton:hover {
+  background: linear-gradient(90deg, #8fb0fe 0%, #f47074 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}

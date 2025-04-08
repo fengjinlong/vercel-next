@@ -19,11 +19,18 @@ import {
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import type { Target, Transaction } from "@/lib/db";
+import AppLayout from "./components/AppLayout";
 
 export default function Home() {
   const [form] = Form.useForm();
+  const [transactionForm] = Form.useForm();
   const [targets, setTargets] = useState<Target[]>([]);
   const [loading, setLoading] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
+  const [buyLoading, setBuyLoading] = useState<number | null>(null);
+  const [sellLoading, setSellLoading] = useState<number | null>(null);
+  const [transactionLoading, setTransactionLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -53,6 +60,7 @@ export default function Home() {
   }, [page, pageSize, search]);
 
   const handleAddTarget = async (values: { name: string }) => {
+    setAddLoading(true);
     try {
       const response = await fetch("/api/targets", {
         method: "POST",
@@ -73,16 +81,21 @@ export default function Home() {
       message.error(
         error instanceof Error ? error.message : "Failed to add target"
       );
+    } finally {
+      setAddLoading(false);
     }
   };
 
   const handleDelete = async (id: number) => {
+    setDeleteLoading(id);
     try {
       await fetch(`/api/targets?id=${id}`, { method: "DELETE" });
       message.success("Target deleted successfully");
       fetchTargets();
     } catch (error) {
       message.error("Failed to delete target");
+    } finally {
+      setDeleteLoading(null);
     }
   };
 
@@ -91,6 +104,7 @@ export default function Home() {
     price: number;
   }) => {
     if (!selectedTarget) return;
+    setTransactionLoading(true);
 
     try {
       const response = await fetch("/api/transactions", {
@@ -115,11 +129,30 @@ export default function Home() {
       }
 
       message.success("Transaction created successfully");
+      transactionForm.resetFields();
       setTransactionModalVisible(false);
       fetchTargets();
     } catch (error) {
       message.error("网络错误，请稍后重试");
+    } finally {
+      setTransactionLoading(false);
     }
+  };
+
+  const openBuyModal = (record: Target) => {
+    setBuyLoading(record.id);
+    setSelectedTarget(record);
+    setTransactionType("buy");
+    setTransactionModalVisible(true);
+    setBuyLoading(null);
+  };
+
+  const openSellModal = (record: Target) => {
+    setSellLoading(record.id);
+    setSelectedTarget(record);
+    setTransactionType("sell");
+    setTransactionModalVisible(true);
+    setSellLoading(null);
   };
 
   const columns = [
@@ -218,24 +251,18 @@ export default function Home() {
           <Button
             type="primary"
             icon={<DollarOutlined />}
-            onClick={() => {
-              setSelectedTarget(record);
-              setTransactionType("buy");
-              setTransactionModalVisible(true);
-            }}
+            onClick={() => openBuyModal(record)}
             style={{ marginRight: 8 }}
+            loading={buyLoading === record.id}
           >
             买入
           </Button>
           <Button
             type="default"
             icon={<DollarOutlined />}
-            onClick={() => {
-              setSelectedTarget(record);
-              setTransactionType("sell");
-              setTransactionModalVisible(true);
-            }}
+            onClick={() => openSellModal(record)}
             style={{ marginRight: 8 }}
+            loading={sellLoading === record.id}
           >
             卖出
           </Button>
@@ -244,7 +271,12 @@ export default function Home() {
             onConfirm={() => handleDelete(record.id)}
             icon={<ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />}
           >
-            <Button type="primary" danger icon={<DeleteOutlined />}>
+            <Button
+              type="primary"
+              danger
+              icon={<DeleteOutlined />}
+              loading={deleteLoading === record.id}
+            >
               删除
             </Button>
           </Popconfirm>
@@ -254,82 +286,100 @@ export default function Home() {
   ];
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-6">Target Management</h1>
+    <AppLayout>
+      <div className="p-8">
+        <h1 className="text-2xl font-bold mb-6">Target Management</h1>
 
-      <div className="mb-6">
-        <Form form={form} layout="inline" onFinish={handleAddTarget}>
-          <Form.Item
-            name="name"
-            rules={[
-              { required: true, message: "Please input target name!" },
-              { max: 50, message: "Name cannot be longer than 50 characters!" },
-            ]}
-          >
-            <Input placeholder="Target Name" style={{ width: 200 }} />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>
-              Add Target
-            </Button>
-          </Form.Item>
-        </Form>
-      </div>
+        <div className="mb-6">
+          <Form form={form} layout="inline" onFinish={handleAddTarget}>
+            <Form.Item
+              name="name"
+              rules={[
+                { required: true, message: "Please input target name!" },
+                {
+                  max: 50,
+                  message: "Name cannot be longer than 50 characters!",
+                },
+              ]}
+            >
+              <Input placeholder="Target Name" style={{ width: 200 }} />
+            </Form.Item>
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                icon={<PlusOutlined />}
+                loading={addLoading}
+              >
+                Add Target
+              </Button>
+            </Form.Item>
+          </Form>
+        </div>
 
-      {/* <div className="mb-4">
-        <Input.Search
-          placeholder="Search targets"
-          onSearch={(value) => setSearch(value)}
-          style={{ width: 300 }}
+        {/* <div className="mb-4">
+          <Input.Search
+            placeholder="Search targets"
+            onSearch={(value) => setSearch(value)}
+            style={{ width: 300 }}
+          />
+        </div> */}
+
+        <Table
+          columns={columns}
+          dataSource={targets}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            total,
+            current: page,
+            pageSize,
+            onChange: (p, ps) => {
+              setPage(p);
+              setPageSize(ps);
+            },
+          }}
         />
-      </div> */}
 
-      <Table
-        columns={columns}
-        dataSource={targets}
-        rowKey="id"
-        loading={loading}
-        pagination={{
-          total,
-          current: page,
-          pageSize,
-          onChange: (p, ps) => {
-            setPage(p);
-            setPageSize(ps);
-          },
-        }}
-      />
-
-      <Modal
-        title={`${transactionType === "buy" ? "Buy" : "Sell"} ${
-          selectedTarget?.name || ""
-        }`}
-        open={transactionModalVisible}
-        onCancel={() => setTransactionModalVisible(false)}
-        footer={null}
-      >
-        <Form onFinish={handleTransaction} layout="vertical">
-          <Form.Item
-            name="quantity"
-            label="Quantity"
-            rules={[{ required: true, message: "Please input quantity!" }]}
+        <Modal
+          title={`${transactionType === "buy" ? "Buy" : "Sell"} ${
+            selectedTarget?.name || ""
+          }`}
+          open={transactionModalVisible}
+          onCancel={() => setTransactionModalVisible(false)}
+          footer={null}
+        >
+          <Form
+            form={transactionForm}
+            onFinish={handleTransaction}
+            layout="vertical"
           >
-            <InputNumber min={0} style={{ width: "100%" }} />
-          </Form.Item>
-          <Form.Item
-            name="price"
-            label="Price"
-            rules={[{ required: true, message: "Please input price!" }]}
-          >
-            <InputNumber min={0} style={{ width: "100%" }} />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit">
-              Submit
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
+            <Form.Item
+              name="quantity"
+              label="Quantity"
+              rules={[{ required: true, message: "Please input quantity!" }]}
+            >
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </Form.Item>
+            <Form.Item
+              name="price"
+              label="Price"
+              rules={[{ required: true, message: "Please input price!" }]}
+            >
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </Form.Item>
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={transactionLoading}
+              >
+                Submit
+              </Button>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div>
+    </AppLayout>
   );
 }

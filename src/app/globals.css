@@ -26,3 +26,55 @@ body {
   background: rgb(var(--background-rgb));
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Ant Design 覆盖样式 - 全局生效 */
+.ant-btn-primary {
+  background: linear-gradient(90deg, #a6c0fe 0%, #f68084 100%) !important;
+  border: none !important;
+  border-radius: 6px !important;
+}
+
+.ant-btn-primary:hover,
+.ant-btn-primary:focus {
+  background: linear-gradient(90deg, #8fb0fe 0%, #f47074 100%) !important;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-2px);
+}
+
+.ant-input,
+.ant-input-affix-wrapper {
+  border-radius: 6px !important;
+  border-color: rgba(171, 196, 255, 0.5) !important;
+}
+
+.ant-input:hover,
+.ant-input-affix-wrapper:hover {
+  border-color: #a6c0fe !important;
+  box-shadow: 0 0 0 2px rgba(166, 192, 254, 0.2) !important;
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper-focused {
+  border-color: #a6c0fe !important;
+  box-shadow: 0 0 0 2px rgba(166, 192, 254, 0.2) !important;
+}
+
+.ant-input-affix-wrapper .anticon {
+  color: rgba(142, 109, 174, 0.6) !important;
+}
+
+/* 消息通知样式 */
+.ant-message-notice-content {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 8px !important;
+}
+
+.ant-message-success .anticon {
+  color: #52c41a !important;
+}
+
+.ant-message-error .anticon {
+  color: #f5222d !important;
+}
