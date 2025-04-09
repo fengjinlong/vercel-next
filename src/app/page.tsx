@@ -51,6 +51,10 @@ export default function Home() {
   const [assetAllocationVisible, setAssetAllocationVisible] = useState(false);
   const [editNameModalVisible, setEditNameModalVisible] = useState(false);
   const [editNameLoading, setEditNameLoading] = useState(false);
+  const [realTimePrices, setRealTimePrices] = useState<Record<string, number>>(
+    {}
+  );
+  const [realTimePricesLoading, setRealTimePricesLoading] = useState(false);
 
   const fetchTargets = async () => {
     setLoading(true);
@@ -195,6 +199,49 @@ export default function Home() {
     fetchTransactionHistory(record.id, record.name);
   };
 
+  const fetchRealTimePrices = async (targetsList: Target[]) => {
+    setRealTimePricesLoading(true);
+    const prices: Record<string, number> = {};
+
+    try {
+      const fetchPromises = targetsList
+        .filter((target) => parseFloat(String(target.total_assets)) > 0)
+        .map(async (target) => {
+          try {
+            const response = await fetch(
+              `https://min-api.cryptocompare.com/data/price?fsym=${target.name}&tsyms=USD`
+            );
+            const data = await response.json();
+
+            if (data.USD) {
+              prices[target.name] = data.USD;
+            } else {
+              // If asset not found, use the average cost as fallback
+              prices[target.name] =
+                parseFloat(String(target.average_cost)) || 0;
+            }
+          } catch (error) {
+            console.error(`Error fetching price for ${target.name}:`, error);
+            // Fallback to average cost
+            prices[target.name] = parseFloat(String(target.average_cost)) || 0;
+          }
+        });
+
+      await Promise.all(fetchPromises);
+      setRealTimePrices(prices);
+    } catch (error) {
+      message.error("Failed to fetch real-time prices");
+      console.error("Failed to fetch real-time prices:", error);
+    } finally {
+      setRealTimePricesLoading(false);
+    }
+  };
+
+  const handleOpenAssetAllocation = () => {
+    setAssetAllocationVisible(true);
+    fetchRealTimePrices(targets);
+  };
+
   const getAssetAllocationOptions = () => {
     // Filter targets with positive assets
     const targetsWithAssets = targets.filter(
@@ -250,6 +297,79 @@ export default function Home() {
             show: true,
           },
           data: pieData,
+        },
+      ],
+    };
+  };
+
+  const getRealTimeAssetAllocationOptions = () => {
+    // Filter targets with positive assets
+    const targetsWithAssets = targets.filter(
+      (target) =>
+        target.total_assets && parseFloat(String(target.total_assets)) > 0
+    );
+
+    // Calculate total real-time value of assets
+    const pieData = targetsWithAssets.map((target) => {
+      const quantity = parseFloat(String(target.total_assets));
+      const price =
+        realTimePrices[target.name] ||
+        parseFloat(String(target.average_cost)) ||
+        0;
+      const value = quantity * price;
+
+      return {
+        name: target.name,
+        value: value,
+        realTimePrice: price,
+        quantity: quantity,
+      };
+    });
+
+    const totalValue = pieData.reduce((sum, item) => sum + item.value, 0);
+
+    // Add percentage to the data
+    const finalPieData = pieData.map((item) => ({
+      ...item,
+      percentage: ((item.value / totalValue) * 100).toFixed(2),
+    }));
+
+    return {
+      tooltip: {
+        trigger: "item",
+        formatter: function (params: any) {
+          return `${params.name}<br/>
+                  价格: $${params.data.realTimePrice.toFixed(2)}<br/>
+                  数量: ${params.data.quantity.toFixed(2)}<br/>
+                  价值: $${params.data.value.toFixed(2)} (${params.percent}%)`;
+        },
+      },
+      legend: {
+        orient: "vertical",
+        left: 10,
+        data: finalPieData.map((item) => item.name),
+      },
+      series: [
+        {
+          name: "实时资产占比",
+          type: "pie",
+          radius: "60%",
+          avoidLabelOverlap: false,
+          label: {
+            show: true,
+            formatter: "{b}: ${c} ({d}%)",
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: "16",
+              fontWeight: "bold",
+            },
+          },
+          labelLine: {
+            show: true,
+          },
+          data: finalPieData,
         },
       ],
     };
@@ -475,7 +595,7 @@ export default function Home() {
             <Button
               type="primary"
               icon={<PieChartOutlined />}
-              onClick={() => setAssetAllocationVisible(true)}
+              onClick={handleOpenAssetAllocation}
             >
               资产占比
             </Button>
@@ -550,13 +670,42 @@ export default function Home() {
           open={assetAllocationVisible}
           onCancel={() => setAssetAllocationVisible(false)}
           footer={null}
-          width={700}
+          width={900}
         >
-          <div style={{ height: 400 }}>
-            <ReactECharts
-              option={getAssetAllocationOptions()}
-              style={{ height: "100%", width: "100%" }}
-            />
+          <div
+            style={{ display: "flex", flexDirection: "row", flexWrap: "wrap" }}
+          >
+            <div style={{ height: 400, width: "50%" }}>
+              <h3 style={{ textAlign: "center", marginBottom: 16 }}>
+                基于资产持仓数量分布
+              </h3>
+              <ReactECharts
+                option={getAssetAllocationOptions()}
+                style={{ height: "100%", width: "100%" }}
+              />
+            </div>
+            <div style={{ height: 400, width: "50%" }}>
+              <h3 style={{ textAlign: "center", marginBottom: 16 }}>
+                基于实时资产总额分布
+              </h3>
+              {realTimePricesLoading ? (
+                <div
+                  style={{
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <div>加载实时数据中...</div>
+                </div>
+              ) : (
+                <ReactECharts
+                  option={getRealTimeAssetAllocationOptions()}
+                  style={{ height: "100%", width: "100%" }}
+                />
+              )}
+            </div>
           </div>
         </Modal>
 
