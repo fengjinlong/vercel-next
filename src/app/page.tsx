@@ -38,6 +38,12 @@ export default function Home() {
   const [transactionModalVisible, setTransactionModalVisible] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState<Target | null>(null);
   const [transactionType, setTransactionType] = useState<"buy" | "sell">("buy");
+  const [historyModalVisible, setHistoryModalVisible] = useState(false);
+  const [transactionHistory, setTransactionHistory] = useState<Transaction[]>(
+    []
+  );
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [viewingTarget, setViewingTarget] = useState<Target | null>(null);
 
   const fetchTargets = async () => {
     setLoading(true);
@@ -87,6 +93,8 @@ export default function Home() {
   };
 
   const handleDelete = async (id: number) => {
+    message.warning("联系管理员删除");
+    return;
     setDeleteLoading(id);
     try {
       await fetch(`/api/targets?id=${id}`, { method: "DELETE" });
@@ -139,6 +147,27 @@ export default function Home() {
     }
   };
 
+  const fetchTransactionHistory = async (
+    targetId: number,
+    targetName: string
+  ) => {
+    setHistoryLoading(true);
+    try {
+      const response = await fetch(`/api/transactions?targetId=${targetId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch transaction history");
+      }
+      const data = await response.json();
+      setTransactionHistory(data);
+      setViewingTarget({ id: targetId, name: targetName } as Target);
+      setHistoryModalVisible(true);
+    } catch (error) {
+      message.error("Failed to fetch transaction history");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
   const openBuyModal = (record: Target) => {
     setBuyLoading(record.id);
     setSelectedTarget(record);
@@ -153,6 +182,10 @@ export default function Home() {
     setTransactionType("sell");
     setTransactionModalVisible(true);
     setSellLoading(null);
+  };
+
+  const openHistoryModal = (record: Target) => {
+    fetchTransactionHistory(record.id, record.name);
   };
 
   const columns = [
@@ -188,7 +221,7 @@ export default function Home() {
       },
     },
     {
-      title: "总数量",
+      title: "持仓数量",
       dataIndex: "total_assets",
       key: "total_assets",
       render: (value: any) => {
@@ -258,13 +291,22 @@ export default function Home() {
             买入
           </Button>
           <Button
-            type="default"
+            type="primary"
             icon={<DollarOutlined />}
             onClick={() => openSellModal(record)}
             style={{ marginRight: 8 }}
             loading={sellLoading === record.id}
           >
             卖出
+          </Button>
+          <Button
+            type="primary"
+            icon={<DollarOutlined />}
+            style={{ marginRight: 8 }}
+            onClick={() => openHistoryModal(record)}
+            loading={historyLoading && viewingTarget?.id === record.id}
+          >
+            查看记录
           </Button>
           <Popconfirm
             title="确定要删除这个目标吗？"
@@ -314,6 +356,9 @@ export default function Home() {
                 Add Target
               </Button>
             </Form.Item>
+            <Button type="primary" icon={<PlusOutlined />} loading={addLoading}>
+              资产占比
+            </Button>
           </Form>
         </div>
 
@@ -378,6 +423,123 @@ export default function Home() {
               </Button>
             </Form.Item>
           </Form>
+        </Modal>
+
+        <Modal
+          title={`${viewingTarget?.name || ""} 交易记录`}
+          open={historyModalVisible}
+          onCancel={() => setHistoryModalVisible(false)}
+          footer={null}
+          width={800}
+        >
+          <Table
+            loading={historyLoading}
+            dataSource={transactionHistory}
+            rowKey="id"
+            pagination={{ pageSize: 100 }}
+            columns={[
+              {
+                title: "类型",
+                dataIndex: "type",
+                key: "type",
+                render: (type: string) => (
+                  <Tag color={type === "buy" ? "blue" : "green"}>
+                    {type === "buy" ? "买入" : "卖出"}
+                  </Tag>
+                ),
+              },
+              {
+                title: "数量",
+                dataIndex: "quantity",
+                key: "quantity",
+                render: (value: any) => Number(value).toFixed(2),
+              },
+              {
+                title: "价格",
+                dataIndex: "price",
+                key: "price",
+                render: (value: any) => `$${Number(value).toFixed(2)}`,
+              },
+              {
+                title: "金额",
+                key: "amount",
+                render: (_, record: Transaction) =>
+                  `$${(Number(record.quantity) * Number(record.price)).toFixed(
+                    2
+                  )}`,
+              },
+              {
+                title: "日期",
+                dataIndex: "created_at",
+                key: "created_at",
+                render: (date: string) => new Date(date).toLocaleString(),
+              },
+            ]}
+            summary={(pageData) => {
+              const totalBuyQuantity = pageData
+                .filter((item: Transaction) => item.type === "buy")
+                .reduce(
+                  (prev: number, curr: Transaction) =>
+                    prev + Number(curr.quantity),
+                  0
+                );
+
+              const totalBuyAmount = pageData
+                .filter((item: Transaction) => item.type === "buy")
+                .reduce(
+                  (prev: number, curr: Transaction) =>
+                    prev + Number(curr.quantity) * Number(curr.price),
+                  0
+                );
+
+              const totalSellQuantity = pageData
+                .filter((item: Transaction) => item.type === "sell")
+                .reduce(
+                  (prev: number, curr: Transaction) =>
+                    prev + Number(curr.quantity),
+                  0
+                );
+
+              const totalSellAmount = pageData
+                .filter((item: Transaction) => item.type === "sell")
+                .reduce(
+                  (prev: number, curr: Transaction) =>
+                    prev + Number(curr.quantity) * Number(curr.price),
+                  0
+                );
+
+              return (
+                <>
+                  <Table.Summary.Row>
+                    <Table.Summary.Cell index={0} colSpan={2}>
+                      <strong>总买入</strong>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={1}>
+                      {totalBuyQuantity.toFixed(2)}
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={2} colSpan={2}>
+                      <span style={{ color: "#1890ff" }}>
+                        ${totalBuyAmount.toFixed(2)}
+                      </span>
+                    </Table.Summary.Cell>
+                  </Table.Summary.Row>
+                  <Table.Summary.Row>
+                    <Table.Summary.Cell index={0} colSpan={2}>
+                      <strong>总卖出</strong>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={1}>
+                      {totalSellQuantity.toFixed(2)}
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={2} colSpan={2}>
+                      <span style={{ color: "#52c41a" }}>
+                        ${totalSellAmount.toFixed(2)}
+                      </span>
+                    </Table.Summary.Cell>
+                  </Table.Summary.Row>
+                </>
+              );
+            }}
+          />
         </Modal>
       </div>
     </AppLayout>
