@@ -17,9 +17,11 @@ import {
   DeleteOutlined,
   DollarOutlined,
   ExclamationCircleOutlined,
+  PieChartOutlined,
 } from "@ant-design/icons";
 import type { Target, Transaction } from "@/lib/db";
 import AppLayout from "./components/AppLayout";
+import ReactECharts from "echarts-for-react";
 
 export default function Home() {
   const [form] = Form.useForm();
@@ -44,6 +46,7 @@ export default function Home() {
   );
   const [historyLoading, setHistoryLoading] = useState(false);
   const [viewingTarget, setViewingTarget] = useState<Target | null>(null);
+  const [assetAllocationVisible, setAssetAllocationVisible] = useState(false);
 
   const fetchTargets = async () => {
     setLoading(true);
@@ -186,6 +189,66 @@ export default function Home() {
 
   const openHistoryModal = (record: Target) => {
     fetchTransactionHistory(record.id, record.name);
+  };
+
+  const getAssetAllocationOptions = () => {
+    // Filter targets with positive assets
+    const targetsWithAssets = targets.filter(
+      (target) =>
+        target.total_assets && parseFloat(String(target.total_assets)) > 0
+    );
+
+    // Calculate total assets
+    const totalAssets = targetsWithAssets.reduce(
+      (sum, target) => sum + parseFloat(String(target.total_assets)),
+      0
+    );
+
+    // Prepare data for pie chart
+    const pieData = targetsWithAssets.map((target) => ({
+      name: target.name,
+      value: parseFloat(String(target.total_assets)),
+      percentage: (
+        (parseFloat(String(target.total_assets)) / totalAssets) *
+        100
+      ).toFixed(2),
+    }));
+
+    return {
+      tooltip: {
+        trigger: "item",
+        formatter: "{a} <br/>{b}: {c} ({d}%)",
+      },
+      legend: {
+        orient: "vertical",
+        left: 10,
+        data: pieData.map((item) => item.name),
+      },
+      series: [
+        {
+          name: "资产占比",
+          type: "pie",
+          // radius: ["50%", "70%"],
+          radius: "60%",
+          avoidLabelOverlap: false,
+          label: {
+            show: true,
+            formatter: "{b}: {c} ({d}%)",
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: "16",
+              fontWeight: "bold",
+            },
+          },
+          labelLine: {
+            show: true,
+          },
+          data: pieData,
+        },
+      ],
+    };
   };
 
   const columns = [
@@ -356,7 +419,11 @@ export default function Home() {
                 Add Target
               </Button>
             </Form.Item>
-            <Button type="primary" icon={<PlusOutlined />} loading={addLoading}>
+            <Button
+              type="primary"
+              icon={<PieChartOutlined />}
+              onClick={() => setAssetAllocationVisible(true)}
+            >
               资产占比
             </Button>
           </Form>
@@ -423,6 +490,21 @@ export default function Home() {
               </Button>
             </Form.Item>
           </Form>
+        </Modal>
+
+        <Modal
+          title="资产占比"
+          open={assetAllocationVisible}
+          onCancel={() => setAssetAllocationVisible(false)}
+          footer={null}
+          width={700}
+        >
+          <div style={{ height: 400 }}>
+            <ReactECharts
+              option={getAssetAllocationOptions()}
+              style={{ height: "100%", width: "100%" }}
+            />
+          </div>
         </Modal>
 
         <Modal
