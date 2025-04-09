@@ -99,3 +99,42 @@ export async function DELETE(request: Request) {
     );
   }
 }
+
+// PATCH /api/targets - Update target name
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, name } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Target ID is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!name || name.length > 50) {
+      return NextResponse.json({ error: "Invalid name" }, { status: 400 });
+    }
+
+    const result = await pool.query(
+      "UPDATE targets SET name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *",
+      [name, id]
+    );
+
+    if (result.rowCount === 0) {
+      return NextResponse.json({ error: "Target not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(result.rows[0]);
+  } catch (error) {
+    console.error("Error updating target:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to update target",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
+}

@@ -18,6 +18,7 @@ import {
   DollarOutlined,
   ExclamationCircleOutlined,
   PieChartOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 import type { Target, Transaction } from "@/lib/db";
 import AppLayout from "./components/AppLayout";
@@ -26,6 +27,7 @@ import ReactECharts from "echarts-for-react";
 export default function Home() {
   const [form] = Form.useForm();
   const [transactionForm] = Form.useForm();
+  const [editNameForm] = Form.useForm();
   const [targets, setTargets] = useState<Target[]>([]);
   const [loading, setLoading] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
@@ -47,6 +49,8 @@ export default function Home() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [viewingTarget, setViewingTarget] = useState<Target | null>(null);
   const [assetAllocationVisible, setAssetAllocationVisible] = useState(false);
+  const [editNameModalVisible, setEditNameModalVisible] = useState(false);
+  const [editNameLoading, setEditNameLoading] = useState(false);
 
   const fetchTargets = async () => {
     setLoading(true);
@@ -251,6 +255,47 @@ export default function Home() {
     };
   };
 
+  const handleEditName = async (values: { name: string }) => {
+    if (!selectedTarget) return;
+    setEditNameLoading(true);
+
+    try {
+      const response = await fetch("/api/targets", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: selectedTarget.id,
+          name: values.name,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.details || data.error || "Failed to update target name"
+        );
+      }
+
+      message.success("Target name updated successfully");
+      editNameForm.resetFields();
+      setEditNameModalVisible(false);
+      fetchTargets();
+    } catch (error) {
+      message.error(
+        error instanceof Error ? error.message : "Failed to update target name"
+      );
+    } finally {
+      setEditNameLoading(false);
+    }
+  };
+
+  const openEditNameModal = (record: Target) => {
+    setSelectedTarget(record);
+    editNameForm.setFieldsValue({ name: record.name });
+    setEditNameModalVisible(true);
+  };
+
   const columns = [
     {
       title: "名称",
@@ -344,6 +389,14 @@ export default function Home() {
       key: "actions",
       render: (_: any, record: Target) => (
         <>
+          <Button
+            type="primary"
+            icon={<EditOutlined />}
+            onClick={() => openEditNameModal(record)}
+            style={{ marginRight: 8 }}
+          >
+            修改名称
+          </Button>
           <Button
             type="primary"
             icon={<DollarOutlined />}
@@ -622,6 +675,35 @@ export default function Home() {
               );
             }}
           />
+        </Modal>
+
+        <Modal
+          title="修改名称"
+          open={editNameModalVisible}
+          onCancel={() => setEditNameModalVisible(false)}
+          footer={null}
+        >
+          <Form form={editNameForm} onFinish={handleEditName} layout="vertical">
+            <Form.Item
+              name="name"
+              label="名称"
+              rules={[
+                { required: true, message: "请输入名称!" },
+                { max: 50, message: "名称不能超过50个字符!" },
+              ]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={editNameLoading}
+              >
+                保存
+              </Button>
+            </Form.Item>
+          </Form>
         </Modal>
       </div>
     </AppLayout>
