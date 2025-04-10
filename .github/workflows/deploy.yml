@@ -70,10 +70,10 @@ jobs:
           host: 49.232.8.45
           username: root
           password: Web198743@
-          source: "pm2.config.js"
+          source: "pm2.config.cjs"
           target: "/root/next-app"
 
-      - name: SSH restart with PM2
+      - name: SSH install dependencies
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: 49.232.8.45
@@ -85,6 +85,5 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
             pnpm install --prod
-            pnpm add pm2 -g || true
-            export PATH="$PATH:/root/.local/share/pnpm:/usr/local/lib/node_modules/.bin:/root/.pnpm/bin"
-            which pm2 || npx pm2@latest reload next-app || npx pm2@latest start pm2.config.js
+            echo "=== 部署完成 ==="
+            echo "请在服务器上运行: cd /root/next-app && pm2 start pm2.config.cjs"
