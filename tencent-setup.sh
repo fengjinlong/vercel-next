@@ -69,7 +69,7 @@ echo -e "\n${YELLOW}[3] 测试数据库连接${NC}"
 echo -e "${YELLOW}正在使用 Node.js 测试数据库连接...${NC}"
 
 # 创建临时测试脚本
-cat > test-db-connection.js << 'EOF'
+cat > test-db-connection.cjs << 'EOF'
 require('dotenv').config();
 const { Pool } = require('pg');
 
@@ -117,10 +117,10 @@ testConnection();
 EOF
 
 # 运行测试脚本
-node test-db-connection.js
+node test-db-connection.cjs
 
 # 删除临时测试脚本
-rm test-db-connection.js
+rm test-db-connection.cjs
 
 # 提供后续步骤建议
 echo -e "\n${YELLOW}[4] 后续步骤${NC}"
