@@ -27,6 +27,15 @@ jobs:
       - name: Build Next.js app
         run: pnpm build
 
+      - name: Clean old .next directory on server
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: 49.232.8.45
+          username: root
+          password: Web198743@
+          script: |
+            rm -rf /root/next-app/.next
+
       - name: Upload `.next` to server
         uses: appleboy/scp-action@v0.1.4
         with:
@@ -51,4 +60,8 @@ jobs:
           password: Web198743@
           script: |
             cd /root/next-app/.next
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+            npm list -g | grep pm2 || pnpm install -g pm2
             pm2 reload next-app || pm2 start pm2.config.js
