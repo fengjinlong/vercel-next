@@ -50,5 +50,5 @@ jobs:
           username: root
           password: Web198743@
           script: |
-            cd /root/next-app
+            cd /root/next-app/.next
             pm2 reload next-app || pm2 start pm2.config.js
