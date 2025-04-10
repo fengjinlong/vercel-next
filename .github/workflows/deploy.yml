@@ -34,8 +34,15 @@ jobs:
           username: root
           password: Web198743@
           source: ".next"
+          target: "/root/next-app"
+      - name: Upload PM2 config
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: 49.232.8.45
+          username: root
+          password: Web198743@
+          source: "pm2.config.js"
           target: "/root/next-app/.next"
-
       - name: SSH restart with PM2
         uses: appleboy/ssh-action@v0.1.10
         with:
