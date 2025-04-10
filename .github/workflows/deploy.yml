@@ -30,9 +30,9 @@ jobs:
       - name: Clean old .next directory on server
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: 49.232.8.45
-          username: root
-          password: Web198743@
+          host: ${{ secrets.SERVER_HOST || '49.232.8.45' }}
+          username: ${{ secrets.SERVER_USERNAME || 'root' }}
+          password: ${{ secrets.SERVER_PASSWORD || 'Web198743@' }}
           script: |
             rm -rf /root/next-app/.next
             mkdir -p /root/next-app
@@ -40,41 +40,71 @@ jobs:
       - name: Upload `.next` to server
         uses: appleboy/scp-action@v0.1.4
         with:
-          host: 49.232.8.45
-          username: root
-          password: Web198743@
+          host: ${{ secrets.SERVER_HOST || '49.232.8.45' }}
+          username: ${{ secrets.SERVER_USERNAME || 'root' }}
+          password: ${{ secrets.SERVER_PASSWORD || 'Web198743@' }}
           source: ".next"
           target: "/root/next-app"
 
       - name: Upload package.json files
         uses: appleboy/scp-action@v0.1.4
         with:
-          host: 49.232.8.45
-          username: root
-          password: Web198743@
+          host: ${{ secrets.SERVER_HOST || '49.232.8.45' }}
+          username: ${{ secrets.SERVER_USERNAME || 'root' }}
+          password: ${{ secrets.SERVER_PASSWORD || 'Web198743@' }}
           source: "package.json,pnpm-lock.yaml"
           target: "/root/next-app"
 
       - name: Upload PM2 config
         uses: appleboy/scp-action@v0.1.4
         with:
-          host: 49.232.8.45
-          username: root
-          password: Web198743@
+          host: ${{ secrets.SERVER_HOST || '49.232.8.45' }}
+          username: ${{ secrets.SERVER_USERNAME || 'root' }}
+          password: ${{ secrets.SERVER_PASSWORD || 'Web198743@' }}
           source: "pm2.config.cjs"
           target: "/root/next-app"
 
-      - name: SSH install dependencies
+      - name: Upload setup and restart scripts
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.SERVER_HOST || '49.232.8.45' }}
+          username: ${{ secrets.SERVER_USERNAME || 'root' }}
+          password: ${{ secrets.SERVER_PASSWORD || 'Web198743@' }}
+          source: "tencent-setup.sh,restart.sh"
+          target: "/root/next-app"
+          overwrite: true
+
+      - name: SSH install dependencies and run scripts
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: 49.232.8.45
-          username: root
-          password: Web198743@
+          host: ${{ secrets.SERVER_HOST || '49.232.8.45' }}
+          username: ${{ secrets.SERVER_USERNAME || 'root' }}
+          password: ${{ secrets.SERVER_PASSWORD || 'Web198743@' }}
           script: |
             cd /root/next-app
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+            # 安装依赖
             pnpm install --prod
+
+            # 确保脚本有执行权限
+            chmod +x tencent-setup.sh restart.sh
+
+            # 非交互式处理，使用预设的DATABASE_URL
+            echo "自动使用环境变量中的数据库连接字符串"
+            if [ -f .env ]; then
+              echo "已存在.env文件，不进行修改"
+            else
+              echo "创建.env文件"
+              echo "DATABASE_URL='${{ secrets.DATABASE_URL }}'" > .env
+            fi
+
+            # 重启应用
+            echo "重启应用..."
+            ./restart.sh
+
             echo "=== 部署完成 ==="
-            echo "请在服务器上运行: cd /root/next-app && pm2 start pm2.config.cjs --env production"
+            # 检查PM2状态
+            pm2 status next-app
