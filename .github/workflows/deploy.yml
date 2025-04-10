@@ -74,7 +74,7 @@ jobs:
           target: "/root/next-app"
           overwrite: true
 
-      - name: SSH install dependencies and run scripts
+      - name: SSH install dependencies only
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.SERVER_HOST || '49.232.8.45' }}
@@ -88,23 +88,3 @@ jobs:
 
             # 安装依赖
             pnpm install --prod
-
-            # 确保脚本有执行权限
-            chmod +x tencent-setup.sh restart.sh
-
-            # 非交互式处理，使用预设的DATABASE_URL
-            echo "自动使用环境变量中的数据库连接字符串"
-            if [ -f .env ]; then
-              echo "已存在.env文件，不进行修改"
-            else
-              echo "创建.env文件"
-              echo "DATABASE_URL='${{ secrets.DATABASE_URL }}'" > .env
-            fi
-
-            # 重启应用
-            echo "重启应用..."
-            ./restart.sh
-
-            echo "=== 部署完成 ==="
-            # 检查PM2状态
-            pm2 status next-app
