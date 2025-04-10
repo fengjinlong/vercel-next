@@ -1,0 +1,47 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build Next.js app
+        run: pnpm build
+
+      - name: Upload `.next` to server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: 49.232.8.45
+          username: root
+          password: Web198743@
+          source: ".next"
+          target: "/root/next-app/.next"
+
+      - name: SSH restart with PM2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: 49.232.8.45
+          username: root
+          password: Web198743@
+          script: |
+            cd /root/next-app
+            pm2 reload next-app || pm2 start pm2.config.js
