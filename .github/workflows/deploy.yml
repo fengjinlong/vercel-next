@@ -85,5 +85,6 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
             pnpm install --prod
-            npm list -g | grep pm2 || pnpm install -g pm2
-            pm2 reload next-app || pm2 start pm2.config.js
+            pnpm add pm2 -g || true
+            export PATH="$PATH:/root/.local/share/pnpm:/usr/local/lib/node_modules/.bin:/root/.pnpm/bin"
+            which pm2 || npx pm2@latest reload next-app || npx pm2@latest start pm2.config.js
