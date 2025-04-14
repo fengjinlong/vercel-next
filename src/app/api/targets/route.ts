@@ -219,6 +219,23 @@ export async function DELETE(request: Request) {
       );
     }
 
+    // Get the admin password from request body
+    const body = await request.json();
+    const { adminPassword } = body;
+
+    if (!adminPassword) {
+      return NextResponse.json(
+        { error: "Admin password is required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if admin password is correct (replace this with your actual admin password)
+    const ADMIN_PASSWORD = "fjl198743"; // In production, this should be in environment variables
+    if (adminPassword !== ADMIN_PASSWORD) {
+      return NextResponse.json({ error: "无删除权限" }, { status: 401 });
+    }
+
     await pool.query("DELETE FROM targets WHERE id = $1", [id]);
 
     return NextResponse.json({ success: true });

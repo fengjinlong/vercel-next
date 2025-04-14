@@ -28,6 +28,7 @@ export default function Home() {
   const [form] = Form.useForm();
   const [transactionForm] = Form.useForm();
   const [editNameForm] = Form.useForm();
+  const [adminPasswordForm] = Form.useForm();
   const [targets, setTargets] = useState<Target[]>([]);
   const [loading, setLoading] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
@@ -55,6 +56,9 @@ export default function Home() {
     {}
   );
   const [realTimePricesLoading, setRealTimePricesLoading] = useState(false);
+  const [adminPasswordModalVisible, setAdminPasswordModalVisible] =
+    useState(false);
+  const [targetToDelete, setTargetToDelete] = useState<number | null>(null);
 
   const fetchTargets = async () => {
     setLoading(true);
@@ -104,17 +108,40 @@ export default function Home() {
   };
 
   const handleDelete = async (id: number) => {
-    message.warning("联系管理员删除");
-    return;
-    setDeleteLoading(id);
+    setTargetToDelete(id);
+    setAdminPasswordModalVisible(true);
+  };
+
+  const handleAdminPasswordSubmit = async (values: { password: string }) => {
+    if (!targetToDelete) return;
+
+    setDeleteLoading(targetToDelete);
     try {
-      await fetch(`/api/targets?id=${id}`, { method: "DELETE" });
-      message.success("Target deleted successfully");
+      const response = await fetch(`/api/targets?id=${targetToDelete}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ adminPassword: values.password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete target");
+      }
+
+      message.success("删除成功");
+      setAdminPasswordModalVisible(false);
+      adminPasswordForm.resetFields();
       fetchTargets();
     } catch (error) {
-      message.error("Failed to delete target");
+      message.error(
+        error instanceof Error ? error.message : "Failed to delete target"
+      );
     } finally {
       setDeleteLoading(null);
+      setTargetToDelete(null);
     }
   };
 
@@ -544,20 +571,15 @@ export default function Home() {
           >
             查看记录
           </Button>
-          <Popconfirm
-            title="确定要删除这个目标吗？"
-            onConfirm={() => handleDelete(record.id)}
-            icon={<ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />}
+          <Button
+            type="primary"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record.id)}
+            loading={deleteLoading === record.id}
           >
-            <Button
-              type="primary"
-              danger
-              icon={<DeleteOutlined />}
-              loading={deleteLoading === record.id}
-            >
-              删除
-            </Button>
-          </Popconfirm>
+            删除
+          </Button>
         </>
       ),
     },
@@ -670,7 +692,7 @@ export default function Home() {
           open={assetAllocationVisible}
           onCancel={() => setAssetAllocationVisible(false)}
           footer={null}
-          width={900}
+          width={1200}
         >
           <div
             style={{ display: "flex", flexDirection: "row", flexWrap: "wrap" }}
@@ -850,6 +872,40 @@ export default function Home() {
                 loading={editNameLoading}
               >
                 保存
+              </Button>
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        <Modal
+          title="管理员验证"
+          open={adminPasswordModalVisible}
+          onCancel={() => {
+            setAdminPasswordModalVisible(false);
+            setTargetToDelete(null);
+            adminPasswordForm.resetFields();
+          }}
+          footer={null}
+        >
+          <Form
+            form={adminPasswordForm}
+            onFinish={handleAdminPasswordSubmit}
+            layout="vertical"
+          >
+            <Form.Item
+              name="password"
+              label="管理员密码"
+              rules={[{ required: true, message: "请输入管理员密码!" }]}
+            >
+              <Input.Password />
+            </Form.Item>
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={deleteLoading === targetToDelete}
+              >
+                确认删除
               </Button>
             </Form.Item>
           </Form>
