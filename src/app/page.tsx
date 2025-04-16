@@ -23,6 +23,7 @@ import {
 import type { Target, Transaction } from "@/lib/db";
 import AppLayout from "./components/AppLayout";
 import ReactECharts from "echarts-for-react";
+import { formatNumber } from "./utils/format";
 
 export default function Home() {
   const [form] = Form.useForm();
@@ -457,7 +458,7 @@ export default function Home() {
         const numValue = typeof value === "string" ? parseFloat(value) : value;
         return (
           <span style={{ color: "#1890ff" }}>
-            ${!isNaN(numValue) ? numValue.toFixed(2) : "0.00"}
+            ${!isNaN(numValue) ? formatNumber(numValue) : "0"}
           </span>
         );
       },
@@ -470,7 +471,7 @@ export default function Home() {
         const numValue = typeof value === "string" ? parseFloat(value) : value;
         return (
           <span style={{ color: "#52c41a" }}>
-            ${!isNaN(numValue) ? numValue.toFixed(2) : "0.00"}
+            ${!isNaN(numValue) ? formatNumber(numValue) : "0"}
           </span>
         );
       },
@@ -483,7 +484,7 @@ export default function Home() {
         const numValue = typeof value === "string" ? parseFloat(value) : value;
         return (
           <span style={{ fontWeight: "bold" }}>
-            {!isNaN(numValue) ? numValue.toFixed(2) : "0.00"}
+            {!isNaN(numValue) ? formatNumber(numValue) : "0"}
           </span>
         );
       },
@@ -496,7 +497,7 @@ export default function Home() {
         const numValue = typeof value === "string" ? parseFloat(value) : value;
         return (
           <span style={{ color: "#722ed1" }}>
-            ${!isNaN(numValue) ? numValue.toFixed(2) : "0.00"}
+            ${!isNaN(numValue) ? formatNumber(numValue) : "0"}
           </span>
         );
       },
@@ -513,7 +514,7 @@ export default function Home() {
               color: !isNaN(numValue) && numValue >= 0 ? "#52c41a" : "#f5222d",
             }}
           >
-            ${!isNaN(numValue) ? numValue.toFixed(2) : "0.00"}
+            ${!isNaN(numValue) ? formatNumber(numValue) : "0"}
           </span>
         );
       },
@@ -758,20 +759,20 @@ export default function Home() {
                 title: "数量",
                 dataIndex: "quantity",
                 key: "quantity",
-                render: (value: any) => Number(value).toFixed(2),
+                render: (value: any) => formatNumber(value),
               },
               {
                 title: "价格",
                 dataIndex: "price",
                 key: "price",
-                render: (value: any) => `$${Number(value).toFixed(2)}`,
+                render: (value: any) => `$${formatNumber(value)}`,
               },
               {
                 title: "金额",
                 key: "amount",
                 render: (_, record: Transaction) =>
-                  `$${(Number(record.quantity) * Number(record.price)).toFixed(
-                    2
+                  `$${formatNumber(
+                    Number(record.quantity) * Number(record.price)
                   )}`,
               },
               {
@@ -821,11 +822,11 @@ export default function Home() {
                       <strong>总买入</strong>
                     </Table.Summary.Cell>
                     <Table.Summary.Cell index={1}>
-                      {totalBuyQuantity.toFixed(2)}
+                      {formatNumber(totalBuyQuantity)}
                     </Table.Summary.Cell>
                     <Table.Summary.Cell index={2} colSpan={2}>
                       <span style={{ color: "#1890ff" }}>
-                        ${totalBuyAmount.toFixed(2)}
+                        ${formatNumber(totalBuyAmount)}
                       </span>
                     </Table.Summary.Cell>
                   </Table.Summary.Row>
@@ -834,11 +835,11 @@ export default function Home() {
                       <strong>总卖出</strong>
                     </Table.Summary.Cell>
                     <Table.Summary.Cell index={1}>
-                      {totalSellQuantity.toFixed(2)}
+                      {formatNumber(totalSellQuantity)}
                     </Table.Summary.Cell>
                     <Table.Summary.Cell index={2} colSpan={2}>
                       <span style={{ color: "#52c41a" }}>
-                        ${totalSellAmount.toFixed(2)}
+                        ${formatNumber(totalSellAmount)}
                       </span>
                     </Table.Summary.Cell>
                   </Table.Summary.Row>

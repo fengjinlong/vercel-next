@@ -4,14 +4,14 @@ import { query } from "@/server/db";
 export async function POST(request: Request) {
   try {
     // 记录原始请求信息
-    console.log(
-      "Request headers:",
-      Object.fromEntries(request.headers.entries())
-    );
+    // console.log(
+    //   "Request headers:",
+    //   Object.fromEntries(request.headers.entries())
+    // );
 
     // 获取请求体
     const bodyText = await request.text();
-    console.log("Raw request body:", bodyText);
+    // console.log("Raw request body:", bodyText);
 
     // 尝试解析JSON
     let body;
@@ -25,11 +25,11 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("Parsed request body:", body);
+    // console.log("Parsed request body:", body);
 
     // 检查字段是否存在
     if (!body) {
-      console.log("Body is null or undefined");
+      // console.log("Body is null or undefined");
       return NextResponse.json(
         { error: "Request body is required" },
         { status: 400 }
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     const { username, email } = body;
-    console.log("Extracted values:", { username, email });
+    // console.log("Extracted values:", { username, email });
 
     // 检查字段是否为空
     if (!username || !email) {

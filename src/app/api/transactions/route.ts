@@ -33,12 +33,12 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { targetId, type, quantity, price } = await request.json();
-    console.log("Received transaction request:", {
-      targetId,
-      type,
-      quantity,
-      price,
-    });
+    // console.log("Received transaction request:", {
+    //   targetId,
+    //   type,
+    //   quantity,
+    //   price,
+    // });
 
     // Input validation
     if (!targetId || !type || !quantity || !price) {
@@ -74,14 +74,14 @@ export async function POST(request: Request) {
         "SELECT * FROM targets WHERE id = $1 FOR UPDATE",
         [targetId]
       );
-      console.log("Target query result:", targetResult.rows);
+      // console.log("Target query result:", targetResult.rows);
 
       if (targetResult.rows.length === 0) {
         throw new Error("Target not found");
       }
 
       const target = targetResult.rows[0];
-      console.log("Current target state:", target);
+      // console.log("Current target state:", target);
 
       // Convert string values to numbers to ensure correct calculations
       let newTotalAssets = parseFloat(target.total_assets || "0");
@@ -92,13 +92,13 @@ export async function POST(request: Request) {
       const numQuantity = parseFloat(quantity);
       const numPrice = parseFloat(price);
 
-      console.log("Starting values after conversion:", {
-        newTotalAssets,
-        newTotalBuyAmount,
-        newTotalSellAmount,
-        numQuantity,
-        numPrice,
-      });
+      // console.log("Starting values after conversion:", {
+      //   newTotalAssets,
+      //   newTotalBuyAmount,
+      //   newTotalSellAmount,
+      //   numQuantity,
+      //   numPrice,
+      // });
 
       // Calculate new values based on transaction type
       if (type === "buy") {
@@ -140,14 +140,14 @@ export async function POST(request: Request) {
             )
           : 0;
 
-      console.log("Calculated new values:", {
-        newTotalAssets,
-        newTotalBuyAmount,
-        newTotalSellAmount,
-        profitLoss,
-        profitLossRatio,
-        averageCost,
-      });
+      // console.log("Calculated new values:", {
+      //   newTotalAssets,
+      //   newTotalBuyAmount,
+      //   newTotalSellAmount,
+      //   profitLoss,
+      //   profitLossRatio,
+      //   averageCost,
+      // });
 
       // Create transaction record
       const transactionResult = await client.query(
@@ -156,7 +156,7 @@ export async function POST(request: Request) {
          RETURNING *`,
         [targetId, type, numQuantity, numPrice]
       );
-      console.log("Transaction record created:", transactionResult.rows[0]);
+      // console.log("Transaction record created:", transactionResult.rows[0]);
 
       // Update target
       const updateResult = await client.query(
@@ -180,7 +180,7 @@ export async function POST(request: Request) {
           targetId,
         ]
       );
-      console.log("Target updated:", updateResult.rows[0]);
+      // console.log("Target updated:", updateResult.rows[0]);
 
       await client.query("COMMIT");
       console.log("Transaction committed");
