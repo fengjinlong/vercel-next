@@ -30,7 +30,7 @@ jobs:
       - name: Clean old .next directory on server
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: ${{ secrets.SERVER_HOST || '117.72.63.11' }}
+          host: ${{ secrets.SERVER_HOST || '49.232.8.45' }}
           username: ${{ secrets.SERVER_USERNAME || 'root' }}
           password: ${{ secrets.SERVER_PASSWORD || 'Web198743@' }}
           script: |
@@ -40,7 +40,7 @@ jobs:
       - name: Upload `.next` to server
         uses: appleboy/scp-action@v0.1.4
         with:
-          host: ${{ secrets.SERVER_HOST || '117.72.63.11' }}
+          host: ${{ secrets.SERVER_HOST || '49.232.8.45' }}
           username: ${{ secrets.SERVER_USERNAME || 'root' }}
           password: ${{ secrets.SERVER_PASSWORD || 'Web198743@' }}
           source: ".next"
@@ -49,7 +49,7 @@ jobs:
       - name: Upload package.json files
         uses: appleboy/scp-action@v0.1.4
         with:
-          host: ${{ secrets.SERVER_HOST || '117.72.63.11' }}
+          host: ${{ secrets.SERVER_HOST || '49.232.8.45' }}
           username: ${{ secrets.SERVER_USERNAME || 'root' }}
           password: ${{ secrets.SERVER_PASSWORD || 'Web198743@' }}
           source: "package.json,pnpm-lock.yaml"
@@ -58,7 +58,7 @@ jobs:
       - name: Upload PM2 config
         uses: appleboy/scp-action@v0.1.4
         with:
-          host: ${{ secrets.SERVER_HOST || '117.72.63.11' }}
+          host: ${{ secrets.SERVER_HOST || '49.232.8.45' }}
           username: ${{ secrets.SERVER_USERNAME || 'root' }}
           password: ${{ secrets.SERVER_PASSWORD || 'Web198743@' }}
           source: "pm2.config.cjs"
@@ -67,7 +67,7 @@ jobs:
       - name: Upload setup and restart scripts
         uses: appleboy/scp-action@v0.1.4
         with:
-          host: ${{ secrets.SERVER_HOST || '117.72.63.11' }}
+          host: ${{ secrets.SERVER_HOST || '49.232.8.45' }}
           username: ${{ secrets.SERVER_USERNAME || 'root' }}
           password: ${{ secrets.SERVER_PASSWORD || 'Web198743@' }}
           source: "tencent-setup.sh,restart.sh"
@@ -77,7 +77,7 @@ jobs:
       - name: SSH install dependencies only
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: ${{ secrets.SERVER_HOST || '117.72.63.11' }}
+          host: ${{ secrets.SERVER_HOST || '49.232.8.45' }}
           username: ${{ secrets.SERVER_USERNAME || 'root' }}
           password: ${{ secrets.SERVER_PASSWORD || 'Web198743@' }}
           script: |
