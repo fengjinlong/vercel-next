@@ -385,7 +385,12 @@ export default function Home() {
           avoidLabelOverlap: false,
           label: {
             show: true,
-            formatter: "{b}: ${c} ({d}%)",
+            // formatter: "{b}: ${c} ({d}%)",
+            formatter: function (params: any) {
+              return `${params.name}: $${parseFloat(params.value).toFixed(
+                2
+              )} (${params.percent.toFixed(2)}%)`;
+            },
           },
           emphasis: {
             label: {
@@ -693,7 +698,7 @@ export default function Home() {
           open={assetAllocationVisible}
           onCancel={() => setAssetAllocationVisible(false)}
           footer={null}
-          width={1200}
+          width={1450}
         >
           <div
             style={{ display: "flex", flexDirection: "row", flexWrap: "wrap" }}
