@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { dropTables, initDb } from "@/lib/db";
+import { initDb } from "../../../lib/db";
 
 export async function POST() {
   try {
-    await dropTables();
     await initDb();
     return NextResponse.json({ message: "Database reset successfully" });
   } catch (error) {
