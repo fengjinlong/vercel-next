@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Table,
   Button,
@@ -60,6 +61,7 @@ export default function Home() {
   const [adminPasswordModalVisible, setAdminPasswordModalVisible] =
     useState(false);
   const [targetToDelete, setTargetToDelete] = useState<number | null>(null);
+  const router = useRouter();
 
   const fetchTargets = async () => {
     setLoading(true);
@@ -620,13 +622,24 @@ export default function Home() {
                 Add Target
               </Button>
             </Form.Item>
-            <Button
-              type="primary"
-              icon={<PieChartOutlined />}
-              onClick={handleOpenAssetAllocation}
-            >
-              资产占比
-            </Button>
+            <Form.Item>
+              <Button
+                type="primary"
+                icon={<PieChartOutlined />}
+                onClick={handleOpenAssetAllocation}
+              >
+                资产占比
+              </Button>
+            </Form.Item>
+            <Form.Item>
+              <Button
+                type="primary"
+                icon={<PieChartOutlined />}
+                onClick={() => router.push("/price-alert")}
+              >
+                价格提醒
+              </Button>
+            </Form.Item>
           </Form>
         </div>
 

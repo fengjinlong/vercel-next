@@ -91,8 +91,6 @@ export async function GET(request: Request) {
             )
           `);
 
-          console.log("Successfully created targets table");
-
           // 创建事务表
           await client.query(`
             CREATE TABLE IF NOT EXISTS transactions (
@@ -105,7 +103,7 @@ export async function GET(request: Request) {
             )
           `);
 
-          console.log("Successfully created transactions table");
+          // console.log("Successfully created transactions table");
 
           // 表已创建，但没有数据，返回空结果
           return NextResponse.json({
@@ -176,12 +174,12 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    console.log("Received request body:", body);
+    // console.log("Received request body:", body);
 
     const { name } = body;
 
     if (!name || name.length > 50) {
-      console.log("Invalid name:", name);
+      // console.log("Invalid name:", name);
       return NextResponse.json({ error: "Invalid name" }, { status: 400 });
     }
 
@@ -191,7 +189,6 @@ export async function POST(request: Request) {
       [name]
     );
 
-    console.log("Insert result:", result.rows[0]);
     return NextResponse.json(result.rows[0]);
   } catch (error) {
     console.error("Error creating target:", error);
