@@ -640,6 +640,15 @@ export default function Home() {
                 价格提醒
               </Button>
             </Form.Item>
+            <Form.Item>
+              <Button
+                type="primary"
+                icon={<PieChartOutlined />}
+                onClick={() => router.push("/option-price-estimate")}
+              >
+                期权价格估算
+              </Button>
+            </Form.Item>
           </Form>
         </div>
 
