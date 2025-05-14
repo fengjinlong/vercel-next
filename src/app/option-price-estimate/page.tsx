@@ -207,17 +207,19 @@ export default function OptionPriceEstimate() {
 
   const columns: ColumnsType<RecordItem> = [
     {
-      title: "标的名称",
+      title: "标的",
       dataIndex: "name",
       key: "name",
-      width: 120,
+      width: 80,
+      align: "center",
     },
     {
       title: "当前价格",
       dataIndex: "currentPrice",
       key: "currentPrice",
-      width: 120,
+      width: 110,
       render: (price: number) => price.toFixed(2),
+      align: "center",
     },
     {
       title: "计算日期",
@@ -225,6 +227,7 @@ export default function OptionPriceEstimate() {
       key: "currentDate",
       width: 120,
       render: (date: string) => formatDate(date),
+      align: "center",
     },
     {
       title: "到期日期",
@@ -232,12 +235,14 @@ export default function OptionPriceEstimate() {
       key: "expiryDate",
       width: 120,
       render: (date: string) => formatDate(date),
+      align: "center",
     },
     {
       title: "价格范围(1个标准差)",
       key: "range68",
       render: (_: unknown, record: RecordItem) =>
         `[${record.lowerBound.toFixed(2)} - ${record.upperBound.toFixed(2)}]`,
+      align: "center",
     },
     {
       title: "价格范围(2个标准差)",
@@ -246,6 +251,7 @@ export default function OptionPriceEstimate() {
         `[${record.lowerBound95.toFixed(2)} - ${record.upperBound95.toFixed(
           2
         )}]`,
+      align: "center",
     },
     {
       title: "操作",
