@@ -18,12 +18,14 @@ import AppLayout from "../components/AppLayout";
 const { Title, Text } = Typography;
 
 interface EstimateFormValues {
+  name: string; // 标的名称
   S: number; // 标的资产当前价格
   IV: number; // 隐含波动率
   T: number; // 到期时间(天数)
 }
 
 interface PriceEstimateResult {
+  name: string;
   lowerBound: number;
   upperBound: number;
   lowerBound95: number;
@@ -53,7 +55,7 @@ export default function OptionPriceEstimate() {
   };
 
   const calculatePriceRange = (values: EstimateFormValues) => {
-    const { S, IV, T } = values;
+    const { name, S, IV, T } = values;
 
     // Convert IV from percentage to decimal (e.g., 20% -> 0.2)
     const ivDecimal = IV / 100;
@@ -77,6 +79,7 @@ export default function OptionPriceEstimate() {
     expiryDate.setDate(currentDate.getDate() + T);
 
     setResult({
+      name,
       lowerBound,
       upperBound,
       lowerBound95,
@@ -102,14 +105,22 @@ export default function OptionPriceEstimate() {
 
   const columns: ColumnsType<RecordItem> = [
     {
+      title: "标的名称",
+      dataIndex: "name",
+      key: "name",
+      width: 120,
+    },
+    {
       title: "当前日期",
       dataIndex: "currentDate",
       key: "currentDate",
+      width: 120,
     },
     {
       title: "到期日期",
       dataIndex: "expiryDate",
       key: "expiryDate",
+      width: 120,
     },
     {
       title: "价格范围(1个标准差)",
@@ -128,6 +139,7 @@ export default function OptionPriceEstimate() {
     {
       title: "操作",
       key: "action",
+      width: 100,
       render: (_: unknown, record: RecordItem) => (
         <Popconfirm
           title="确定要删除这条记录吗？"
@@ -146,9 +158,6 @@ export default function OptionPriceEstimate() {
   return (
     <AppLayout>
       <div className="p-8 pt-1">
-        {/* <Title level={4}>期权价格估算</Title> */}
-        {/* <h2 className="text-1xl">期权价格估算</h2> */}
-
         <div style={{ display: "flex", gap: "24px" }}>
           {/* 左侧计算区域 */}
           <Card style={{ flex: "1", marginTop: 24, minWidth: "400px" }}>
@@ -158,6 +167,18 @@ export default function OptionPriceEstimate() {
               onFinish={calculatePriceRange}
               validateTrigger={["onChange", "onBlur"]}
             >
+              <Form.Item
+                label={<>标的名称</>}
+                name="name"
+                validateFirst={true}
+                rules={[
+                  { required: true, message: "请输入标的名称" },
+                  { max: 50, message: "名称不能超过50个字符" },
+                ]}
+              >
+                <Input placeholder="例如: BTC" />
+              </Form.Item>
+
               <Form.Item
                 label={<>标的资产当前价格 (S)</>}
                 name="S"
@@ -209,6 +230,10 @@ export default function OptionPriceEstimate() {
                 <Title level={3} style={{ marginBottom: 24 }}>
                   价格区间预测结果
                 </Title>
+
+                <div style={{ marginBottom: 20 }}>
+                  <Text strong>标的名称: {result.name}</Text>
+                </div>
 
                 <div
                   style={{
