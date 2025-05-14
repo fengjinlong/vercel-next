@@ -60,11 +60,36 @@ export interface PriceAlert {
   updated_at: Date;
 }
 
+export interface OptionEstimate {
+  id: number;
+  name: string;
+  current_price: number;
+  estimate_date: string;
+  expiry_date: string;
+  lower_bound: number;
+  upper_bound: number;
+  lower_bound_95: number;
+  upper_bound_95: number;
+  created_at: string;
+}
+
+export interface CreateOptionEstimateData {
+  name: string;
+  current_price: number;
+  estimate_date: string;
+  expiry_date: string;
+  lower_bound: number;
+  upper_bound: number;
+  lower_bound_95: number;
+  upper_bound_95: number;
+}
+
 export async function resetDatabase() {
   console.warn("WARNING: This will delete all data from the database!");
   await pool.query("DROP TABLE IF EXISTS transactions");
   await pool.query("DROP TABLE IF EXISTS targets");
   await pool.query("DROP TABLE IF EXISTS price_alerts");
+  await pool.query("DROP TABLE IF EXISTS option_estimates");
   console.log("Tables dropped successfully");
 }
 
@@ -140,11 +165,37 @@ export async function createPriceAlertTable() {
   }
 }
 
+export async function createOptionEstimateTable() {
+  const query = `
+    CREATE TABLE IF NOT EXISTS option_estimates (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(50) NOT NULL,
+      current_price DECIMAL(15,6) NOT NULL,
+      estimate_date DATE NOT NULL,
+      expiry_date DATE NOT NULL,
+      lower_bound DECIMAL(15,6) NOT NULL,
+      upper_bound DECIMAL(15,6) NOT NULL,
+      lower_bound_95 DECIMAL(15,6) NOT NULL,
+      upper_bound_95 DECIMAL(15,6) NOT NULL,
+      created_at DATE DEFAULT CURRENT_DATE
+    )
+  `;
+
+  try {
+    await pool.query(query);
+    console.log("Option estimate table created successfully");
+  } catch (error) {
+    console.error("Error creating option estimate table:", error);
+    throw error;
+  }
+}
+
 export async function initDb() {
   try {
     await createTargetTable();
     await createTransactionTable();
     await createPriceAlertTable();
+    await createOptionEstimateTable();
     console.log("Database initialized successfully");
   } catch (error) {
     console.error("Error initializing database:", error);
@@ -238,6 +289,74 @@ export async function updatePriceAlert(
 
 export async function deletePriceAlert(id: number): Promise<boolean> {
   const query = "DELETE FROM price_alerts WHERE id = $1";
+  const result = await pool.query(query, [id]);
+  return result.rowCount ? result.rowCount > 0 : false;
+}
+
+export async function getAllOptionEstimates(): Promise<OptionEstimate[]> {
+  const query = `
+    SELECT 
+      id,
+      name,
+      current_price,
+      TO_CHAR(estimate_date, 'YYYY-MM-DD') as estimate_date,
+      TO_CHAR(expiry_date, 'YYYY-MM-DD') as expiry_date,
+      lower_bound,
+      upper_bound,
+      lower_bound_95,
+      upper_bound_95,
+      TO_CHAR(created_at, 'YYYY-MM-DD') as created_at
+    FROM option_estimates 
+    ORDER BY created_at DESC
+  `;
+  const result = await pool.query(query);
+  return result.rows;
+}
+
+export async function createOptionEstimate(
+  data: CreateOptionEstimateData
+): Promise<OptionEstimate> {
+  const query = `
+    INSERT INTO option_estimates (
+      name,
+      current_price,
+      estimate_date,
+      expiry_date,
+      lower_bound,
+      upper_bound,
+      lower_bound_95,
+      upper_bound_95
+    ) VALUES ($1, $2, $3::date, $4::date, $5, $6, $7, $8)
+    RETURNING 
+      id,
+      name,
+      current_price,
+      TO_CHAR(estimate_date, 'YYYY-MM-DD') as estimate_date,
+      TO_CHAR(expiry_date, 'YYYY-MM-DD') as expiry_date,
+      lower_bound,
+      upper_bound,
+      lower_bound_95,
+      upper_bound_95,
+      TO_CHAR(created_at, 'YYYY-MM-DD') as created_at
+  `;
+
+  const values = [
+    data.name,
+    data.current_price,
+    data.estimate_date,
+    data.expiry_date,
+    data.lower_bound,
+    data.upper_bound,
+    data.lower_bound_95,
+    data.upper_bound_95,
+  ];
+
+  const result = await pool.query(query, values);
+  return result.rows[0];
+}
+
+export async function deleteOptionEstimate(id: number): Promise<boolean> {
+  const query = "DELETE FROM option_estimates WHERE id = $1";
   const result = await pool.query(query, [id]);
   return result.rowCount ? result.rowCount > 0 : false;
 }

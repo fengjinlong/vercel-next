@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Form,
   Input,
@@ -11,9 +11,12 @@ import {
   Table,
   Space,
   Popconfirm,
+  message,
+  DatePicker,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import AppLayout from "../components/AppLayout";
+import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
 
@@ -21,11 +24,12 @@ interface EstimateFormValues {
   name: string; // 标的名称
   S: number; // 标的资产当前价格
   IV: number; // 隐含波动率
-  T: number; // 到期时间(天数)
+  expiryDate: string; // 到期日期
 }
 
 interface PriceEstimateResult {
   name: string;
+  currentPrice: number;
   lowerBound: number;
   upperBound: number;
   lowerBound95: number;
@@ -42,6 +46,42 @@ export default function OptionPriceEstimate() {
   const [form] = Form.useForm();
   const [result, setResult] = useState<PriceEstimateResult | null>(null);
   const [records, setRecords] = useState<RecordItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchRecords();
+  }, []);
+
+  const fetchRecords = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/option-estimates");
+      if (!response.ok) {
+        throw new Error("Failed to fetch records");
+      }
+      const data = await response.json();
+      setRecords(
+        data.map((record: any) => ({
+          id: record.id.toString(),
+          name: record.name,
+          currentPrice: Number(record.current_price),
+          currentDate: record.estimate_date,
+          expiryDate: record.expiry_date,
+          lowerBound: Number(record.lower_bound),
+          upperBound: Number(record.upper_bound),
+          lowerBound95: Number(record.lower_bound_95),
+          upperBound95: Number(record.upper_bound_95),
+        }))
+      );
+    } catch (error) {
+      console.error("Error fetching records:", error);
+      message.error("获取记录失败");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const validatePositiveNumber = (_: any, value: string) => {
     const num = Number(value);
@@ -55,7 +95,12 @@ export default function OptionPriceEstimate() {
   };
 
   const calculatePriceRange = (values: EstimateFormValues) => {
-    const { name, S, IV, T } = values;
+    const { name, S, IV, expiryDate } = values;
+
+    // 计算天数差
+    const today = dayjs();
+    const expiry = dayjs(expiryDate);
+    const T = expiry.diff(today, "day");
 
     // Convert IV from percentage to decimal (e.g., 20% -> 0.2)
     const ivDecimal = IV / 100;
@@ -73,34 +118,91 @@ export default function OptionPriceEstimate() {
     const lowerBound95 = S * Math.exp(-factor95);
     const upperBound95 = S * Math.exp(factor95);
 
-    // Calculate dates
-    const currentDate = new Date();
-    const expiryDate = new Date();
-    expiryDate.setDate(currentDate.getDate() + T);
+    // Get today's date in YYYY-MM-DD format
+    const currentDate = today.format("YYYY-MM-DD");
+    const formattedExpiryDate = expiry.format("YYYY-MM-DD");
 
     setResult({
       name,
+      currentPrice: S,
       lowerBound,
       upperBound,
       lowerBound95,
       upperBound95,
-      currentDate: currentDate.toISOString().split("T")[0],
-      expiryDate: expiryDate.toISOString().split("T")[0],
+      currentDate,
+      expiryDate: formattedExpiryDate,
     });
   };
 
-  const handleRecord = () => {
-    if (result) {
-      const newRecord: RecordItem = {
-        ...result,
-        id: Date.now().toString(),
-      };
-      setRecords([newRecord, ...records]);
+  const handleRecord = async () => {
+    if (!result) return;
+
+    try {
+      setSaving(true);
+      const response = await fetch("/api/option-estimates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: result.name,
+          currentPrice: result.currentPrice,
+          currentDate: result.currentDate,
+          expiryDate: result.expiryDate,
+          lowerBound: result.lowerBound,
+          upperBound: result.upperBound,
+          lowerBound95: result.lowerBound95,
+          upperBound95: result.upperBound95,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        console.error("Error response:", {
+          status: response.status,
+          statusText: response.statusText,
+          data: errorData,
+        });
+        throw new Error(
+          `Failed to save record: ${response.status} ${response.statusText}`
+        );
+      }
+
+      message.success("记录保存成功");
+      fetchRecords(); // Refresh the records
+    } catch (error) {
+      console.error("Error saving record:", error);
+      message.error(
+        `保存记录失败: ${error instanceof Error ? error.message : "未知错误"}`
+      );
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDelete = (id: string) => {
-    setRecords(records.filter((record) => record.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      setDeleting(id);
+      const response = await fetch(`/api/option-estimates/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete record");
+      }
+
+      message.success("记录删除成功");
+      fetchRecords(); // Refresh the records
+    } catch (error) {
+      console.error("Error deleting record:", error);
+      message.error("删除记录失败");
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return dateString.split("T")[0];
   };
 
   const columns: ColumnsType<RecordItem> = [
@@ -111,16 +213,25 @@ export default function OptionPriceEstimate() {
       width: 120,
     },
     {
-      title: "当前日期",
+      title: "当前价格",
+      dataIndex: "currentPrice",
+      key: "currentPrice",
+      width: 120,
+      render: (price: number) => price.toFixed(2),
+    },
+    {
+      title: "计算日期",
       dataIndex: "currentDate",
       key: "currentDate",
       width: 120,
+      render: (date: string) => formatDate(date),
     },
     {
       title: "到期日期",
       dataIndex: "expiryDate",
       key: "expiryDate",
       width: 120,
+      render: (date: string) => formatDate(date),
     },
     {
       title: "价格范围(1个标准差)",
@@ -147,13 +258,18 @@ export default function OptionPriceEstimate() {
           okText="确定"
           cancelText="取消"
         >
-          <Button type="link" danger>
+          <Button type="link" danger loading={deleting === record.id}>
             删除
           </Button>
         </Popconfirm>
       ),
     },
   ];
+
+  // 禁用今天之前的日期
+  const disabledDate = (current: dayjs.Dayjs) => {
+    return current && current < dayjs().startOf("day");
+  };
 
   return (
     <AppLayout>
@@ -206,16 +322,18 @@ export default function OptionPriceEstimate() {
               </Form.Item>
 
               <Form.Item
-                label={<>到期时间 (T，天数)</>}
-                name="T"
+                label={<>到期日期</>}
+                name="expiryDate"
                 validateFirst={true}
-                rules={[
-                  { required: true, message: "请输入到期时间" },
-                  { validator: validatePositiveNumber },
-                ]}
-                help="天数必须大于0"
+                rules={[{ required: true, message: "请选择到期日期" }]}
+                help="选择期权到期日期"
               >
-                <Input placeholder="例如: 30" />
+                <DatePicker
+                  style={{ width: "100%" }}
+                  disabledDate={disabledDate}
+                  placeholder="选择到期日期"
+                  format="YYYY-MM-DD"
+                />
               </Form.Item>
 
               <Form.Item>
@@ -242,7 +360,7 @@ export default function OptionPriceEstimate() {
                     marginBottom: 20,
                   }}
                 >
-                  <Text>当前日期: {result.currentDate}</Text>
+                  <Text>计算日期: {result.currentDate}</Text>
                   <Text>到期日期: {result.expiryDate}</Text>
                 </div>
 
@@ -274,7 +392,7 @@ export default function OptionPriceEstimate() {
                   </Text>
                 </div>
 
-                <Button type="primary" onClick={handleRecord}>
+                <Button type="primary" onClick={handleRecord} loading={saving}>
                   记录结果
                 </Button>
               </div>
@@ -282,7 +400,7 @@ export default function OptionPriceEstimate() {
           </Card>
 
           {/* 右侧历史记录表格 */}
-          <Card style={{ flex: "2", marginTop: 24, minWidth: "800px" }}>
+          <Card style={{ flex: "3", marginTop: 24, minWidth: "800px" }}>
             <Title level={4} style={{ marginBottom: 16 }}>
               历史记录
             </Title>
@@ -292,6 +410,7 @@ export default function OptionPriceEstimate() {
               rowKey="id"
               pagination={{ pageSize: 5 }}
               scroll={{ y: 400, x: 800 }}
+              loading={loading}
             />
           </Card>
         </div>
