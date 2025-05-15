@@ -27,7 +27,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    console.log("Received request body:", body);
+    console.log("API received request body:", body);
 
     const data: CreateOptionEstimateData = {
       name: body.name,
@@ -38,11 +38,14 @@ export async function POST(request: Request) {
       upper_bound: body.upperBound,
       lower_bound_95: body.lowerBound95,
       upper_bound_95: body.upperBound95,
+      iv: body.iv,
     };
 
-    console.log("Processed data:", data);
+    console.log("API processed data:", data);
 
     const result = await createOptionEstimate(data);
+    console.log("API database result:", result);
+
     return NextResponse.json(result);
   } catch (error) {
     console.error("Failed to create option estimate:", error);

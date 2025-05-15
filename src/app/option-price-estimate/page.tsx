@@ -36,6 +36,7 @@ interface PriceEstimateResult {
   upperBound95: number;
   currentDate: string;
   expiryDate: string;
+  iv: number;
 }
 
 interface RecordItem extends PriceEstimateResult {
@@ -73,6 +74,7 @@ export default function OptionPriceEstimate() {
           upperBound: Number(record.upper_bound),
           lowerBound95: Number(record.lower_bound_95),
           upperBound95: Number(record.upper_bound_95),
+          iv: record.iv !== null ? Number(record.iv) : null, // 正确处理 iv 值
         }))
       );
     } catch (error) {
@@ -122,7 +124,7 @@ export default function OptionPriceEstimate() {
     const currentDate = today.format("YYYY-MM-DD");
     const formattedExpiryDate = expiry.format("YYYY-MM-DD");
 
-    setResult({
+    const resultData = {
       name,
       currentPrice: S,
       lowerBound,
@@ -131,7 +133,9 @@ export default function OptionPriceEstimate() {
       upperBound95,
       currentDate,
       expiryDate: formattedExpiryDate,
-    });
+      iv: IV,
+    };
+    setResult(resultData);
   };
 
   const handleRecord = async () => {
@@ -139,21 +143,25 @@ export default function OptionPriceEstimate() {
 
     try {
       setSaving(true);
+      const requestData = {
+        name: result.name,
+        currentPrice: result.currentPrice,
+        currentDate: result.currentDate,
+        expiryDate: result.expiryDate,
+        lowerBound: result.lowerBound,
+        upperBound: result.upperBound,
+        lowerBound95: result.lowerBound95,
+        upperBound95: result.upperBound95,
+        iv: Number(result.iv), // 确保 iv 是数字类型
+      };
+      console.log("Request data:", requestData);
+
       const response = await fetch("/api/option-estimates", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: result.name,
-          currentPrice: result.currentPrice,
-          currentDate: result.currentDate,
-          expiryDate: result.expiryDate,
-          lowerBound: result.lowerBound,
-          upperBound: result.upperBound,
-          lowerBound95: result.lowerBound95,
-          upperBound95: result.upperBound95,
-        }),
+        body: JSON.stringify(requestData),
       });
 
       if (!response.ok) {
@@ -169,7 +177,7 @@ export default function OptionPriceEstimate() {
       }
 
       message.success("记录保存成功");
-      fetchRecords(); // Refresh the records
+      fetchRecords();
     } catch (error) {
       console.error("Error saving record:", error);
       message.error(
@@ -210,15 +218,23 @@ export default function OptionPriceEstimate() {
       title: "标的",
       dataIndex: "name",
       key: "name",
-      width: 80,
+      width: 70,
       align: "center",
     },
     {
-      title: "当前价格",
+      title: "记录价格",
       dataIndex: "currentPrice",
       key: "currentPrice",
       width: 110,
       render: (price: number) => price.toFixed(2),
+      align: "center",
+    },
+    {
+      title: "IV",
+      dataIndex: "iv",
+      key: "iv",
+      width: 90,
+      render: (iv: number | null) => (iv !== null ? `${iv.toFixed(2)}%` : "-"),
       align: "center",
     },
     {
@@ -238,14 +254,16 @@ export default function OptionPriceEstimate() {
       align: "center",
     },
     {
-      title: "价格范围(1个标准差)",
+      title: "价格波动(1个标准差)",
       key: "range68",
+      width: 210,
       render: (_: unknown, record: RecordItem) =>
         `[${record.lowerBound.toFixed(2)} - ${record.upperBound.toFixed(2)}]`,
       align: "center",
     },
     {
-      title: "价格范围(2个标准差)",
+      title: "价格波动(2个标准差)",
+      width: 210,
       key: "range95",
       render: (_: unknown, record: RecordItem) =>
         `[${record.lowerBound95.toFixed(2)} - ${record.upperBound95.toFixed(
@@ -256,7 +274,8 @@ export default function OptionPriceEstimate() {
     {
       title: "操作",
       key: "action",
-      width: 100,
+      align: "center",
+      width: 80,
       render: (_: unknown, record: RecordItem) => (
         <Popconfirm
           title="确定要删除这条记录吗？"
@@ -323,6 +342,7 @@ export default function OptionPriceEstimate() {
                   { validator: validatePositiveNumber },
                 ]}
                 help="输入百分比数值，例如20表示20%"
+                initialValue=""
               >
                 <Input placeholder="例如: 20" />
               </Form.Item>

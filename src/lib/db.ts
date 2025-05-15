@@ -70,6 +70,7 @@ export interface OptionEstimate {
   upper_bound: number;
   lower_bound_95: number;
   upper_bound_95: number;
+  iv: number;
   created_at: string;
 }
 
@@ -82,6 +83,7 @@ export interface CreateOptionEstimateData {
   upper_bound: number;
   lower_bound_95: number;
   upper_bound_95: number;
+  iv?: number;
 }
 
 export async function resetDatabase() {
@@ -177,6 +179,7 @@ export async function createOptionEstimateTable() {
       upper_bound DECIMAL(15,6) NOT NULL,
       lower_bound_95 DECIMAL(15,6) NOT NULL,
       upper_bound_95 DECIMAL(15,6) NOT NULL,
+      iv DECIMAL(15,6) NOT NULL,
       created_at DATE DEFAULT CURRENT_DATE
     )
   `;
@@ -190,12 +193,28 @@ export async function createOptionEstimateTable() {
   }
 }
 
+export async function addIvColumn() {
+  const query = `
+    ALTER TABLE option_estimates 
+    ADD COLUMN IF NOT EXISTS iv DECIMAL(15,6);
+  `;
+
+  try {
+    await pool.query(query);
+    console.log("Added iv column successfully");
+  } catch (error) {
+    console.error("Error adding iv column:", error);
+    throw error;
+  }
+}
+
 export async function initDb() {
   try {
     await createTargetTable();
     await createTransactionTable();
     await createPriceAlertTable();
     await createOptionEstimateTable();
+    await addIvColumn();
     console.log("Database initialized successfully");
   } catch (error) {
     console.error("Error initializing database:", error);
@@ -305,6 +324,7 @@ export async function getAllOptionEstimates(): Promise<OptionEstimate[]> {
       upper_bound,
       lower_bound_95,
       upper_bound_95,
+      iv,
       TO_CHAR(created_at, 'YYYY-MM-DD') as created_at
     FROM option_estimates 
     ORDER BY created_at DESC
@@ -316,6 +336,8 @@ export async function getAllOptionEstimates(): Promise<OptionEstimate[]> {
 export async function createOptionEstimate(
   data: CreateOptionEstimateData
 ): Promise<OptionEstimate> {
+  console.log("DB createOptionEstimate received data:", data); // 添加日志
+
   const query = `
     INSERT INTO option_estimates (
       name,
@@ -325,8 +347,9 @@ export async function createOptionEstimate(
       lower_bound,
       upper_bound,
       lower_bound_95,
-      upper_bound_95
-    ) VALUES ($1, $2, $3::date, $4::date, $5, $6, $7, $8)
+      upper_bound_95,
+      iv
+    ) VALUES ($1, $2, $3::date, $4::date, $5, $6, $7, $8, $9)
     RETURNING 
       id,
       name,
@@ -337,6 +360,7 @@ export async function createOptionEstimate(
       upper_bound,
       lower_bound_95,
       upper_bound_95,
+      iv,
       TO_CHAR(created_at, 'YYYY-MM-DD') as created_at
   `;
 
@@ -349,9 +373,13 @@ export async function createOptionEstimate(
     data.upper_bound,
     data.lower_bound_95,
     data.upper_bound_95,
+    data.iv,
   ];
 
+  console.log("DB query values:", values); // 添加日志
+
   const result = await pool.query(query, values);
+  console.log("DB query result:", result.rows[0]); // 添加日志
   return result.rows[0];
 }
 
