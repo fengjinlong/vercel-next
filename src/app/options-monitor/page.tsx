@@ -10,12 +10,16 @@ import {
   Select,
   DatePicker,
   message,
+  Card,
+  Typography,
 } from "antd";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 
 dayjs.extend(utc);
+
+const { Title, Text, Paragraph } = Typography;
 
 // 类型定义
 interface OptionTarget {
@@ -300,6 +304,124 @@ export default function OptionsMonitor() {
         </div>
       ))}
 
+      {/* 指标说明 */}
+      <div className="mt-8">
+        <Title level={3}>指标说明</Title>
+
+        <Card title="1. 看涨趋势" className="mb-4">
+          <ul className="list-disc pl-4">
+            <li>
+              <Text strong>Delta行为：</Text>{" "}
+              Delta持续走强（从0.5增加至接近1），表明期权价格随标的资产价格上涨而快速增加，尤其对买入看涨期权有利。
+            </li>
+            <li>
+              <Text strong>Gamma行为：</Text>{" "}
+              Gamma稳定或减弱，因期权可能进入深度实值（ITM）状态，Delta变化趋于平缓。
+            </li>
+            <li>
+              <Text strong>Theta行为：</Text>{" "}
+              Theta为负值，时间流逝对买入期权不利，但影响较小，因价格上涨主导。
+            </li>
+            <li>
+              <Text strong>Vega行为：</Text>{" "}
+              Vega下降可能支持趋势延续，表明市场对上涨方向确定，隐含波动率（IV）降低。
+            </li>
+            <li>
+              <Text strong>反转信号：</Text>{" "}
+              Delta下降（例如从0.7降至0.5）或Vega突然上升（IV增加）可能预示趋势减弱或反转，需警惕价格停止上涨或市场不确定性增加。
+            </li>
+          </ul>
+        </Card>
+
+        <Card title="2. 看跌趋势" className="mb-4">
+          <ul className="list-disc pl-4">
+            <li>
+              <Text strong>Delta行为：</Text>{" "}
+              Delta为负且绝对值增加（例如从-0.5降至-0.8），对买入看跌期权有利，反映价格下跌。
+            </li>
+            <li>
+              <Text strong>Gamma行为：</Text>{" "}
+              Gamma上升，价格下跌增加Delta变化敏感度，风险较高。
+            </li>
+            <li>
+              <Text strong>Theta行为：</Text>{" "}
+              Theta为负值，时间流逝对买入期权不利，但影响可能被价格下跌抵消。
+            </li>
+            <li>
+              <Text strong>Vega行为：</Text>{" "}
+              Vega上升较快，因波动率通常在下跌趋势中增加，反映市场恐慌。
+            </li>
+            <li>
+              <Text strong>反转信号：</Text>{" "}
+              Delta上升（例如从-0.8升至-0.5）或Vega下降（IV降低）可能表明下跌趋势减弱，需关注价格稳定或市场信心恢复。
+            </li>
+          </ul>
+        </Card>
+
+        <Card title="3. 横盘趋势" className="mb-4">
+          <ul className="list-disc pl-4">
+            <li>
+              <Text strong>Delta行为：</Text>{" "}
+              Delta保持中性（接近0），因价格波动有限。
+            </li>
+            <li>
+              <Text strong>Gamma行为：</Text>{" "}
+              Gamma风险高，价格微小波动可能导致Delta快速变化，尤其对卖出期权（如straddle）构成风险。
+            </li>
+            <li>
+              <Text strong>Theta行为：</Text>{" "}
+              Theta最大化，时间流逝利好卖出期权，因期权价值因时间衰减而减少。
+            </li>
+            <li>
+              <Text strong>Vega行为：</Text>{" "}
+              Vega需警惕异常，波动率上升可能预示突破（上涨或下跌）。
+            </li>
+            <li>
+              <Text strong>反转信号：</Text>{" "}
+              Delta显著偏离0（例如升至0.3或降至-0.3）或Vega急剧上升（IV增加）可能表明价格即将突破横盘，需准备调整策略。
+            </li>
+          </ul>
+        </Card>
+
+        <Card title="4. 铁鹰策略的希腊字母特性" className="mb-4">
+          <Paragraph className="mb-4">
+            根据研究，铁鹰策略的整体希腊字母具有以下特点：
+          </Paragraph>
+          <ul className="list-disc pl-4">
+            <li>
+              <Text strong>Delta：</Text>{" "}
+              铁鹰策略通常设计为Delta中性（净Delta接近0），因看跌价差和看涨价差相互对冲。若两条价差等距虚值，净Delta在短腿中间为0。
+            </li>
+            <li>
+              <Text strong>Gamma：</Text>{" "}
+              净Gamma通常为负值，因铁鹰策略卖出期权。Gamma在短腿之间最高，接近到期时Gamma风险增加。
+            </li>
+            <li>
+              <Text strong>Theta：</Text>{" "}
+              净Theta通常为正值，因策略从时间衰减中获利，是铁鹰策略盈利的关键。
+            </li>
+            <li>
+              <Text strong>Vega：</Text>{" "}
+              净Vega通常为负值，策略从波动率下降中获利。Vega上升可能导致亏损。
+            </li>
+          </ul>
+        </Card>
+
+        <Card title="实践建议" className="mb-4">
+          <ul className="list-disc pl-4">
+            <li>
+              记录方法：每天在固定时间（如00:00 08:00
+              16:00）记录ATM期权的希腊字母
+            </li>
+            <li>
+              异常检测：关注Delta的显著变化（{">"}
+              0.1）、Vega的异常上升或Gamma的高波动，结合价格走势和Open
+              Interest（OI）验证。
+            </li>
+          </ul>
+        </Card>
+      </div>
+
       {/* 添加/编辑标的弹窗 */}
       <Modal
         title={editingTarget ? "编辑标的" : "添加标的"}
@@ -310,14 +432,14 @@ export default function OptionsMonitor() {
         <Form form={targetForm} layout="vertical">
           <Form.Item
             name="name"
-            label="标的名称"
+            label="标的名称 (5月30看涨BTC)"
             rules={[{ required: true, message: "请输入标的名称" }]}
           >
             <Input placeholder="如：5月30看涨BTC" />
           </Form.Item>
           <Form.Item
             name="strategy"
-            label="策略列表"
+            label="策略列表 (L-btc-30MAY25-120000-C)"
             rules={[{ required: true, message: "请输入策略列表" }]}
             help="每行一个策略"
           >
