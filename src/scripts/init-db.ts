@@ -1,24 +1,54 @@
-import { initDb, testConnection } from "../lib/db.js";
+import pkg from "pg";
+const { Pool } = pkg;
 
-async function main() {
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+async function createTables() {
   try {
-    console.log("Testing database connection...");
-    const isConnected = await testConnection();
-    if (!isConnected) {
-      console.error(
-        "Failed to connect to database. Please check your DATABASE_URL environment variable."
-      );
-      process.exit(1);
+    // 创建期权标的表
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS option_target (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        strategy JSONB NOT NULL DEFAULT '[]',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 创建期权指标表
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS option_indicator (
+        id SERIAL PRIMARY KEY,
+        option_id INTEGER NOT NULL REFERENCES option_target(id) ON DELETE CASCADE,
+        time TIMESTAMP WITH TIME ZONE NOT NULL,
+        current_price DECIMAL(15, 6) NOT NULL,
+        iv DECIMAL(10, 4) NOT NULL,
+        delta DECIMAL(10, 4) NOT NULL,
+        gamma DECIMAL(10, 4) NOT NULL,
+        theta DECIMAL(10, 4) NOT NULL,
+        vega DECIMAL(10, 4) NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 添加 current_price 列（如果不存在）
+    try {
+      await pool.query(`
+        ALTER TABLE option_indicator 
+        ADD COLUMN IF NOT EXISTS current_price DECIMAL(15, 6) NOT NULL DEFAULT 0
+      `);
+    } catch (error) {
+      console.log("current_price column might already exist");
     }
 
-    console.log("Initializing database...");
-    await initDb();
-    console.log("Database initialized successfully");
-    process.exit(0);
+    console.log("Tables created successfully");
+    await pool.end();
   } catch (error) {
-    console.error("Error initializing database:", error);
+    console.error("Error creating tables:", error);
     process.exit(1);
   }
 }
 
-main();
+createTables();

@@ -649,6 +649,15 @@ export default function Home() {
                 期权价格估算
               </Button>
             </Form.Item>
+            <Form.Item>
+              <Button
+                type="primary"
+                icon={<PieChartOutlined />}
+                onClick={() => router.push("/options-monitor")}
+              >
+                期权监控数据系统
+              </Button>
+            </Form.Item>
           </Form>
         </div>
 

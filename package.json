@@ -18,6 +18,7 @@
     "@types/cron": "^2.4.3",
     "@types/js-cookie": "^3.0.6",
     "@types/nodemailer": "^6.4.17",
+    "@vercel/postgres": "^0.7.2",
     "antd": "^5.24.6",
     "axios": "^1.8.4",
     "cron": "^4.3.0",
