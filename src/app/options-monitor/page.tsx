@@ -39,6 +39,7 @@ interface OptionIndicator {
   gamma: number;
   theta: number;
   vega: number;
+  dvol: number;
   createdAt: string;
 }
 
@@ -50,8 +51,13 @@ export default function OptionsMonitor() {
   const [targetModalVisible, setTargetModalVisible] = useState(false);
   const [indicatorModalVisible, setIndicatorModalVisible] = useState(false);
   const [editingTarget, setEditingTarget] = useState<OptionTarget | null>(null);
+  const [editingIndicator, setEditingIndicator] =
+    useState<OptionIndicator | null>(null);
   const [targetForm] = Form.useForm();
   const [indicatorForm] = Form.useForm();
+  const [targetLoading, setTargetLoading] = useState(false);
+  const [indicatorLoading, setIndicatorLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
 
   // 加载数据
   useEffect(() => {
@@ -71,7 +77,6 @@ export default function OptionsMonitor() {
       setTargets(Array.isArray(targetsData) ? targetsData : []);
       setIndicators(Array.isArray(indicatorsData) ? indicatorsData : []);
     } catch (error) {
-      console.error("Error fetching data:", error);
       message.error("加载数据失败");
       // Initialize with empty arrays on error
       setTargets([]);
@@ -116,11 +121,14 @@ export default function OptionsMonitor() {
       content: "删除标的将同时删除其所有指标记录，是否继续？",
       onOk: async () => {
         try {
+          setDeleteLoading(id);
           await fetch(`/api/option/${id}`, { method: "DELETE" });
           message.success("删除成功");
           fetchData();
         } catch (error) {
           message.error("删除失败");
+        } finally {
+          setDeleteLoading(null);
         }
       },
     });
@@ -128,17 +136,24 @@ export default function OptionsMonitor() {
 
   const handleTargetSubmit = async () => {
     try {
+      setTargetLoading(true);
       const values = await targetForm.validateFields();
       const strategy = values.strategy.split("\n").filter(Boolean);
-      const method = editingTarget ? "PUT" : "POST";
-      const url = editingTarget
-        ? `/api/option/${editingTarget.id}`
-        : "/api/option";
 
-      await fetch(url, {
-        method,
+      const payload = {
+        ...values,
+        strategy,
+      };
+
+      // 如果是编辑，添加id到payload
+      if (editingTarget) {
+        payload.id = editingTarget.id;
+      }
+
+      await fetch("/api/option", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, strategy }),
+        body: JSON.stringify(payload),
       });
 
       message.success(`${editingTarget ? "更新" : "添加"}成功`);
@@ -146,12 +161,24 @@ export default function OptionsMonitor() {
       fetchData();
     } catch (error) {
       message.error("提交失败");
+    } finally {
+      setTargetLoading(false);
     }
   };
 
   // 指标相关操作
   const handleAddIndicator = () => {
+    setEditingIndicator(null);
     indicatorForm.resetFields();
+    setIndicatorModalVisible(true);
+  };
+
+  const handleEditIndicator = (record: OptionIndicator) => {
+    setEditingIndicator(record);
+    indicatorForm.setFieldsValue({
+      ...record,
+      time: dayjs(record.time),
+    });
     setIndicatorModalVisible(true);
   };
 
@@ -161,11 +188,14 @@ export default function OptionsMonitor() {
       content: "确定要删除这条指标记录吗？",
       onOk: async () => {
         try {
+          setDeleteLoading(id);
           await fetch(`/api/indicator/${id}`, { method: "DELETE" });
           message.success("删除成功");
           fetchData();
         } catch (error) {
           message.error("删除失败");
+        } finally {
+          setDeleteLoading(null);
         }
       },
     });
@@ -173,22 +203,48 @@ export default function OptionsMonitor() {
 
   const handleIndicatorSubmit = async () => {
     try {
+      setIndicatorLoading(true);
       const values = await indicatorForm.validateFields();
-      await fetch("/api/indicator", {
+
+      const payload = {
+        ...values,
+        time: formatDateTimeToUTC(values.time),
+      };
+
+      // 根据是否是编辑操作使用不同的端点
+      const url = editingIndicator
+        ? `/api/indicator/${editingIndicator.id}`
+        : "/api/indicator";
+
+      const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...values,
-          time: formatDateTimeToUTC(values.time),
-        }),
+        body: JSON.stringify(payload),
       });
 
-      message.success("添加成功");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || errorData.error || "保存失败");
+      }
+
+      const data = await response.json();
+      message.success(`${editingIndicator ? "更新" : "添加"}成功`);
       setIndicatorModalVisible(false);
+      setEditingIndicator(null);
       fetchData();
     } catch (error) {
-      message.error("提交失败");
+      console.error("Submit error:", error);
+      message.error(error instanceof Error ? error.message : "提交失败");
+    } finally {
+      setIndicatorLoading(false);
     }
+  };
+
+  // 取消编辑或关闭弹窗时重置状态
+  const handleIndicatorModalCancel = () => {
+    setIndicatorModalVisible(false);
+    setEditingIndicator(null);
+    indicatorForm.resetFields();
   };
 
   // 表格列定义
@@ -240,11 +296,17 @@ export default function OptionsMonitor() {
       render: (value: number | null) =>
         value != null ? Number(value).toFixed(2) : "-",
     },
-    { title: "IV", dataIndex: "iv" },
     { title: "Delta", dataIndex: "delta" },
     { title: "Gamma", dataIndex: "gamma" },
     { title: "Theta", dataIndex: "theta" },
     { title: "Vega", dataIndex: "vega" },
+    { title: "IV", dataIndex: "iv" },
+    {
+      title: "DVOL",
+      dataIndex: "dvol",
+      render: (value: number | null) =>
+        value != null ? Number(value).toFixed(2) : "-",
+    },
     {
       title: "创建时间",
       dataIndex: "createdAt",
@@ -253,14 +315,24 @@ export default function OptionsMonitor() {
     {
       title: "操作",
       render: (_: any, record: OptionIndicator) => (
-        <Button
-          type="link"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() => handleDeleteIndicator(record.id)}
-        >
-          删除
-        </Button>
+        <>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => handleEditIndicator(record)}
+          >
+            编辑
+          </Button>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            loading={deleteLoading === record.id}
+            onClick={() => handleDeleteIndicator(record.id)}
+          >
+            删除
+          </Button>
+        </>
       ),
     },
   ];
@@ -428,6 +500,7 @@ export default function OptionsMonitor() {
         open={targetModalVisible}
         onOk={handleTargetSubmit}
         onCancel={() => setTargetModalVisible(false)}
+        confirmLoading={targetLoading}
       >
         <Form form={targetForm} layout="vertical">
           <Form.Item
@@ -451,12 +524,13 @@ export default function OptionsMonitor() {
         </Form>
       </Modal>
 
-      {/* 添加指标弹窗 */}
+      {/* 添加/编辑指标弹窗 */}
       <Modal
-        title="添加指标"
+        title={editingIndicator ? "编辑指标" : "添加指标"}
         open={indicatorModalVisible}
         onOk={handleIndicatorSubmit}
-        onCancel={() => setIndicatorModalVisible(false)}
+        onCancel={handleIndicatorModalCancel}
+        confirmLoading={indicatorLoading}
       >
         <Form form={indicatorForm} layout="vertical">
           <Form.Item
@@ -484,42 +558,49 @@ export default function OptionsMonitor() {
             label="实时价格(ATM)"
             rules={[{ required: true, message: "请输入实时价格" }]}
           >
-            <Input type="number" step="0.01" />
+            <Input placeholder="请输入实时价格" />
           </Form.Item>
           <Form.Item
             name="iv"
             label="IV (隐含波动率)"
             rules={[{ required: true, message: "请输入IV" }]}
           >
-            <Input type="number" step="0.01" />
+            <Input placeholder="请输入IV" />
           </Form.Item>
           <Form.Item
             name="delta"
             label="Delta"
             rules={[{ required: true, message: "请输入Delta" }]}
           >
-            <Input type="number" step="0.01" />
+            <Input placeholder="请输入Delta" />
           </Form.Item>
           <Form.Item
             name="gamma"
             label="Gamma"
             rules={[{ required: true, message: "请输入Gamma" }]}
           >
-            <Input type="number" step="0.01" />
+            <Input placeholder="请输入Gamma" />
           </Form.Item>
           <Form.Item
             name="theta"
             label="Theta"
             rules={[{ required: true, message: "请输入Theta" }]}
           >
-            <Input type="number" step="0.01" />
+            <Input placeholder="请输入Theta" />
           </Form.Item>
           <Form.Item
             name="vega"
             label="Vega"
             rules={[{ required: true, message: "请输入Vega" }]}
           >
-            <Input type="number" step="0.01" />
+            <Input placeholder="请输入Vega" />
+          </Form.Item>
+          <Form.Item
+            name="dvol"
+            label="DVOL (波动率指数)"
+            rules={[{ required: true, message: "请输入DVOL" }]}
+          >
+            <Input placeholder="请输入DVOL" />
           </Form.Item>
         </Form>
       </Modal>

@@ -49,8 +49,6 @@ async function restoreDatabase(backupFile?: string) {
       PGPASSWORD: password,
     };
 
-    console.log(`Restoring database from ${backupFile}...`);
-
     // 执行恢复命令
     const { stdout, stderr } = await execAsync(
       `psql -h ${host} -p ${port} -U ${username} -d ${database} -f "${backupFile}"`,

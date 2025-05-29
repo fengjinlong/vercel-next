@@ -55,7 +55,6 @@ async function backupDatabase() {
     if (files.length > MAX_BACKUPS) {
       files.slice(MAX_BACKUPS).forEach((file) => {
         fs.unlinkSync(file);
-        console.log(`Deleted old backup: ${file}`);
       });
     }
 

@@ -41,7 +41,6 @@ export async function POST(request: Request) {
 
     // 检查字段是否为空
     if (!username || !email) {
-      console.log("Validation failed - missing fields");
       return NextResponse.json(
         { error: "Username and email are required" },
         { status: 400 }

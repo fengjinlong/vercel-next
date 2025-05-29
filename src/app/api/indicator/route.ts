@@ -6,10 +6,26 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
+// 检查并添加 dvol 列
+async function ensureDvolColumn() {
+  try {
+    await pool.query(`
+      ALTER TABLE option_indicator 
+      ADD COLUMN IF NOT EXISTS dvol TEXT
+    `);
+    console.log("Checked/added dvol column successfully");
+  } catch (error) {
+    console.error("Error checking/adding dvol column:", error);
+  }
+}
+
 // GET /api/indicator - 获取所有指标记录
 export async function GET() {
   try {
-    const { rows } = await pool.query(`
+    // 确保 dvol 列存在
+    await ensureDvolColumn();
+
+    const query = `
       SELECT 
         id,
         option_id as "optionId",
@@ -20,16 +36,20 @@ export async function GET() {
         gamma,
         theta,
         vega,
+        dvol,
         created_at as "createdAt"
       FROM option_indicator 
       ORDER BY created_at DESC
-    `);
+    `;
+
+    const { rows } = await pool.query(query);
 
     return NextResponse.json(rows);
   } catch (error) {
-    console.error("Error fetching indicators:", error);
+    const errorDetail =
+      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to fetch indicators" },
+      { error: "Failed to fetch indicators", detail: errorDetail },
       { status: 500 }
     );
   }
@@ -38,14 +58,29 @@ export async function GET() {
 // POST /api/indicator - 创建新的指标记录
 export async function POST(request: Request) {
   try {
-    const { optionId, time, currentPrice, iv, delta, gamma, theta, vega } =
-      await request.json();
+    // 确保 dvol 列存在
+    await ensureDvolColumn();
 
-    const { rows } = await pool.query(
-      `INSERT INTO option_indicator (
-        option_id, time, current_price, iv, delta, gamma, theta, vega
+    const data = await request.json();
+    console.log("Creating indicator with data:", data);
+
+    const {
+      optionId,
+      time,
+      currentPrice,
+      iv,
+      delta,
+      gamma,
+      theta,
+      vega,
+      dvol,
+    } = data;
+
+    const query = `
+      INSERT INTO option_indicator (
+        option_id, time, current_price, iv, delta, gamma, theta, vega, dvol
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING 
         id,
         option_id as "optionId",
@@ -56,15 +91,33 @@ export async function POST(request: Request) {
         gamma,
         theta,
         vega,
-        created_at as "createdAt"`,
-      [optionId, time, currentPrice, iv, delta, gamma, theta, vega]
-    );
+        dvol,
+        created_at as "createdAt"`;
+
+    const values = [
+      optionId,
+      time,
+      currentPrice,
+      iv,
+      delta,
+      gamma,
+      theta,
+      vega,
+      dvol,
+    ];
+    console.log("Insert query:", query);
+    console.log("Insert values:", values);
+
+    const { rows } = await pool.query(query, values);
+    console.log("Insert result:", rows[0]);
 
     return NextResponse.json(rows[0]);
   } catch (error) {
     console.error("Error creating indicator:", error);
+    const errorDetail =
+      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to create indicator" },
+      { error: "Failed to create indicator", detail: errorDetail },
       { status: 500 }
     );
   }

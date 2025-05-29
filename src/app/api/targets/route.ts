@@ -183,7 +183,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid name" }, { status: 400 });
     }
 
-    console.log("Attempting to insert target with name:", name);
     const result = await pool.query(
       "INSERT INTO targets (name) VALUES ($1) RETURNING *",
       [name]
