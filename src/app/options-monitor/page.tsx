@@ -35,7 +35,9 @@ interface OptionIndicator {
   time: string;
   currentPrice: number;
   iv: number;
-  delta: number;
+  callDelta: number;
+  putDelta: number;
+  keyLegOI: number;
   gamma: number;
   theta: number;
   vega: number;
@@ -296,7 +298,9 @@ export default function OptionsMonitor() {
       render: (value: number | null) =>
         value != null ? Number(value).toFixed(2) : "-",
     },
-    { title: "Delta", dataIndex: "delta" },
+    { title: "看涨Delta", dataIndex: "callDelta" },
+    { title: "看跌Delta", dataIndex: "putDelta" },
+    { title: "关键腿OI", dataIndex: "keyLegOI" },
     { title: "Gamma", dataIndex: "gamma" },
     { title: "Theta", dataIndex: "theta" },
     { title: "Vega", dataIndex: "vega" },
@@ -307,11 +311,11 @@ export default function OptionsMonitor() {
       render: (value: number | null) =>
         value != null ? Number(value).toFixed(2) : "-",
     },
-    {
-      title: "创建时间",
-      dataIndex: "createdAt",
-      render: (text: string) => formatUTCToLocal(text),
-    },
+    // {
+    //   title: "创建时间",
+    //   dataIndex: "createdAt",
+    //   render: (text: string) => formatUTCToLocal(text),
+    // },
     {
       title: "操作",
       render: (_: any, record: OptionIndicator) => (
@@ -479,6 +483,86 @@ export default function OptionsMonitor() {
           </ul>
         </Card>
 
+        <Card title="5. 趋势分析指南" className="mb-4">
+          <Paragraph className="mb-4">
+            通过观察希腊字母的变化可以帮助判断市场趋势：
+          </Paragraph>
+          <ul className="list-disc pl-4">
+            <li>
+              <Text strong>Delta变化分析：</Text>
+              <ul className="list-disc pl-8">
+                <li>看涨趋势：看涨期权的Delta从0.5升至0.6，表明上涨概率增加</li>
+                <li>
+                  看跌趋势：看跌期权的Delta从-0.5降至-0.6，表明下跌概率增加
+                </li>
+                <li>横盘趋势：Delta保持中性（看涨约0.5，看跌约-0.5）</li>
+              </ul>
+            </li>
+            <li>
+              <Text strong>Vega波动特征：</Text>{" "}
+              Vega上升（IV增加）通常预示市场可能突破，需要结合Delta变化判断突破方向。
+            </li>
+            <li>
+              <Text strong>Theta和Gamma组合分析：</Text>
+              <ul className="list-disc pl-8">
+                <li>横盘特征：Theta高、Gamma高且Delta保持稳定</li>
+                <li>趋势形成：Gamma高且Delta出现明显变化</li>
+              </ul>
+            </li>
+            <li>
+              <Text strong>综合判断：</Text> 建议结合其他市场指标如Open
+              Interest（OI）和隐含波动率（IV）进行验证。例如，当Delta上升且OI同时增加时，可能进一步确认上涨趋势的形成。
+            </li>
+          </ul>
+        </Card>
+
+        <Card title="6. OI（未平仓量）分析指南" className="mb-4">
+          <Paragraph className="mb-4">
+            OI（Open Interest）变化与其他指标的组合分析可以帮助判断市场走势：
+          </Paragraph>
+          <ul className="list-disc pl-4">
+            <li>
+              <Text strong>趋势确认信号：</Text>
+              <ul className="list-disc pl-8">
+                <li>
+                  <Text strong>看涨确认：</Text> 短看涨期权OI上升 + 价格上涨 +
+                  Delta升至0.6，强化上涨趋势可信度
+                </li>
+                <li>
+                  <Text strong>看跌确认：</Text> 短看跌期权OI上升 + 价格下跌 +
+                  Delta降至-0.6，强化下跌趋势可信度
+                </li>
+              </ul>
+            </li>
+            <li>
+              <Text strong>反转预警信号：</Text>
+              <ul className="list-disc pl-8">
+                <li>
+                  <Text strong>上涨反转风险：</Text>{" "}
+                  价格继续上涨但短看涨期权OI下降，可能预示短线反弹或趋势即将反转
+                </li>
+                <li>
+                  <Text strong>下跌反转风险：</Text>{" "}
+                  价格继续下跌但短看跌期权OI下降，可能为短线调整，需警惕反转风险
+                </li>
+              </ul>
+            </li>
+            <li>
+              <Text strong>横盘与突破信号：</Text>
+              <ul className="list-disc pl-8">
+                <li>
+                  <Text strong>横盘确认：</Text> 短期期权OI保持稳定 +
+                  Delta维持中性（看涨约0.5，看跌约-0.5）
+                </li>
+                <li>
+                  <Text strong>突破预警：</Text> OI突然显著上升 +
+                  Vega同步增加，市场可能准备突破当前区间
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </Card>
+
         <Card title="实践建议" className="mb-4">
           <ul className="list-disc pl-4">
             <li>
@@ -568,11 +652,25 @@ export default function OptionsMonitor() {
             <Input placeholder="请输入IV" />
           </Form.Item>
           <Form.Item
-            name="delta"
-            label="Delta"
-            rules={[{ required: true, message: "请输入Delta" }]}
+            name="callDelta"
+            label="看涨Delta"
+            rules={[{ required: true, message: "请输入看涨Delta" }]}
           >
-            <Input placeholder="请输入Delta" />
+            <Input placeholder="请输入看涨Delta" />
+          </Form.Item>
+          <Form.Item
+            name="putDelta"
+            label="看跌Delta"
+            rules={[{ required: true, message: "请输入看跌Delta" }]}
+          >
+            <Input placeholder="请输入看跌Delta" />
+          </Form.Item>
+          <Form.Item
+            name="keyLegOI"
+            label="关键腿OI"
+            rules={[{ required: true, message: "请输入关键腿OI" }]}
+          >
+            <Input placeholder="请输入关键腿OI" />
           </Form.Item>
           <Form.Item
             name="gamma"

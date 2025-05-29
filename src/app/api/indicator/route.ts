@@ -19,11 +19,43 @@ async function ensureDvolColumn() {
   }
 }
 
+// 检查并添加新列
+async function ensureNewColumns() {
+  try {
+    // First rename the existing delta column to call_delta
+    await pool.query(`
+      DO $$ 
+      BEGIN 
+        IF EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'option_indicator' 
+          AND column_name = 'delta'
+        ) THEN
+          ALTER TABLE option_indicator 
+          RENAME COLUMN delta TO call_delta;
+        END IF;
+      END $$;
+    `);
+
+    // Then add the new columns if they don't exist
+    await pool.query(`
+      ALTER TABLE option_indicator 
+      ADD COLUMN IF NOT EXISTS put_delta TEXT,
+      ADD COLUMN IF NOT EXISTS key_leg_oi TEXT
+    `);
+    console.log("Checked/added new columns successfully");
+  } catch (error) {
+    console.error("Error checking/adding new columns:", error);
+  }
+}
+
 // GET /api/indicator - 获取所有指标记录
 export async function GET() {
   try {
-    // 确保 dvol 列存在
+    // 确保所有列存在
     await ensureDvolColumn();
+    await ensureNewColumns();
 
     const query = `
       SELECT 
@@ -32,7 +64,9 @@ export async function GET() {
         time,
         current_price as "currentPrice",
         iv,
-        delta,
+        call_delta as "callDelta",
+        put_delta as "putDelta",
+        key_leg_oi as "keyLegOI",
         gamma,
         theta,
         vega,
@@ -69,7 +103,9 @@ export async function POST(request: Request) {
       time,
       currentPrice,
       iv,
-      delta,
+      callDelta,
+      putDelta,
+      keyLegOI,
       gamma,
       theta,
       vega,
@@ -78,16 +114,18 @@ export async function POST(request: Request) {
 
     const query = `
       INSERT INTO option_indicator (
-        option_id, time, current_price, iv, delta, gamma, theta, vega, dvol
+        option_id, time, current_price, iv, call_delta, put_delta, key_leg_oi, gamma, theta, vega, dvol
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING 
         id,
         option_id as "optionId",
         time,
         current_price as "currentPrice",
         iv,
-        delta,
+        call_delta as "callDelta",
+        put_delta as "putDelta",
+        key_leg_oi as "keyLegOI",
         gamma,
         theta,
         vega,
@@ -99,7 +137,9 @@ export async function POST(request: Request) {
       time,
       currentPrice,
       iv,
-      delta,
+      callDelta,
+      putDelta,
+      keyLegOI,
       gamma,
       theta,
       vega,
