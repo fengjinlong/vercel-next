@@ -257,7 +257,7 @@ export default function OptionsMonitor() {
       // 并行请求期权数据和 dvol 数据
       const [orderBookResponse, dvolResponse] = await Promise.all([
         fetch(
-          `${BASE_URL}/public/get_order_book?instrument_name=${targetName}`
+          `${BASE_URL}/public/get_order_book?instrument_name=${targetName}&depth=100`
         ),
         fetch(`${BASE_URL}/public/get_index_price?index_name=btcdvol_usdc`),
       ]);
