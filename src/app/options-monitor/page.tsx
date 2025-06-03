@@ -249,6 +249,74 @@ export default function OptionsMonitor() {
     indicatorForm.resetFields();
   };
 
+  // 添加获取期权数据的函数
+  const fetchOptionData = async (targetName: string) => {
+    try {
+      const BASE_URL = "https://test.deribit.com/api/v2";
+
+      // 并行请求期权数据和 dvol 数据
+      const [orderBookResponse, dvolResponse] = await Promise.all([
+        fetch(
+          `${BASE_URL}/public/get_order_book?instrument_name=${targetName}`
+        ),
+        fetch(`${BASE_URL}/public/get_index_price?index_name=btcdvol_usdc`),
+      ]);
+
+      const [orderBookData, dvolData] = await Promise.all([
+        orderBookResponse.json(),
+        dvolResponse.json(),
+      ]);
+
+      console.log("API Response - OrderBook:", orderBookData);
+      console.log("API Response - DVOL:", dvolData);
+
+      if (orderBookData.result) {
+        const { result } = orderBookData;
+        const { greeks, index_price, timestamp } = result;
+
+        // 设置表单数据
+        indicatorForm.setFieldsValue({
+          time: dayjs(timestamp), // 转换时间戳为dayjs对象
+          currentPrice: index_price,
+          iv: result.mark_iv || greeks.iv, // 使用mark_iv或greeks中的iv
+          callDelta: greeks.delta,
+          gamma: greeks.gamma,
+          theta: greeks.theta,
+          vega: greeks.vega,
+          dvol: dvolData.result?.index_price || null, // 使用 index_price 字段
+          // 其他字段保持不变
+          putDelta: indicatorForm.getFieldValue("putDelta"),
+          keyLegOI: indicatorForm.getFieldValue("keyLegOI"),
+        });
+
+        message.success("数据获取并填充成功");
+      }
+      return orderBookData;
+    } catch (error) {
+      console.error("Error fetching option data:", error);
+      message.error("获取数据失败");
+      return null;
+    }
+  };
+
+  // 处理获取数据按钮点击
+  const handleGetData = async () => {
+    try {
+      const optionId = indicatorForm.getFieldValue("optionId");
+      const target = targets.find((t) => t.id === optionId);
+
+      if (!target) {
+        message.error("请先选择所属标的");
+        return;
+      }
+
+      await fetchOptionData(target.name);
+    } catch (error) {
+      console.error("Error handling get data:", error);
+      message.error("获取数据失败");
+    }
+  };
+
   // 表格列定义
   const targetColumns = [
     { title: "标的名称", dataIndex: "name" },
@@ -629,6 +697,12 @@ export default function OptionsMonitor() {
                 </Select.Option>
               ))}
             </Select>
+          </Form.Item>
+          {/* 获取数据 */}
+          <Form.Item name="get_data" label="获取数据">
+            <Button type="primary" onClick={handleGetData}>
+              获取数据
+            </Button>
           </Form.Item>
           <Form.Item
             name="time"
