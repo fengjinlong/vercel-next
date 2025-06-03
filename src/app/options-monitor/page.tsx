@@ -657,16 +657,16 @@ export default function OptionsMonitor() {
         <Form form={targetForm} layout="vertical">
           <Form.Item
             name="name"
-            label="标的名称 (5月30看涨BTC)"
+            label="主标的名称 (BTC-4JUN25-106000-C)"
             rules={[{ required: true, message: "请输入标的名称" }]}
           >
             <Input placeholder="如：5月30看涨BTC" />
           </Form.Item>
           <Form.Item
             name="strategy"
-            label="策略列表 (L-btc-30MAY25-120000-C)"
+            label="描述策略 (L-btc-30MAY25-120000-C)"
             rules={[{ required: true, message: "请输入策略列表" }]}
-            help="每行一个策略"
+            help="每行一个策略，例如：看涨btc-30MAY25-120000-C，看跌btc-30MAY25-150000-C"
           >
             <Input.TextArea
               placeholder="L-btc-30MAY25-120000-C&#10;S-btc-30MAY25-150000-C"
