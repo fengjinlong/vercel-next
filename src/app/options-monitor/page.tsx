@@ -33,15 +33,15 @@ interface OptionIndicator {
   id: number;
   optionId: number;
   time: string;
-  currentPrice: number;
-  iv: number;
-  callDelta: number;
-  putDelta: number;
-  keyLegOI: number;
-  gamma: number;
-  theta: number;
-  vega: number;
-  dvol: number;
+  currentPrice: string;
+  iv: string;
+  callDelta: string;
+  putDelta: string;
+  keyLegOI: string;
+  gamma: string;
+  theta: string;
+  vega: string;
+  dvol: string;
   createdAt: string;
 }
 
@@ -212,8 +212,9 @@ export default function OptionsMonitor() {
         ...values,
         time: formatDateTimeToUTC(values.time),
       };
+      console.log("payload", payload, JSON.stringify(payload));
+      // return;
 
-      // 根据是否是编辑操作使用不同的端点
       const url = editingIndicator
         ? `/api/indicator/${editingIndicator.id}`
         : "/api/indicator";
@@ -363,27 +364,48 @@ export default function OptionsMonitor() {
     {
       title: "实时价格(ATM)",
       dataIndex: "currentPrice",
-      render: (value: number | null) =>
-        value != null ? Number(value).toFixed(2) : "-",
+      render: (value: string) => value || "-",
     },
-    { title: "看涨Delta", dataIndex: "callDelta" },
-    { title: "看跌Delta", dataIndex: "putDelta" },
-    { title: "关键腿OI", dataIndex: "keyLegOI" },
-    { title: "Gamma", dataIndex: "gamma" },
-    { title: "Theta", dataIndex: "theta" },
-    { title: "Vega", dataIndex: "vega" },
-    { title: "IV", dataIndex: "iv" },
+    {
+      title: "看涨Delta",
+      dataIndex: "callDelta",
+      render: (value: string) => value || "-",
+    },
+    {
+      title: "看跌Delta",
+      dataIndex: "putDelta",
+      render: (value: string) => value || "-",
+    },
+    {
+      title: "关键腿OI",
+      dataIndex: "keyLegOI",
+      render: (value: string) => value || "-",
+    },
+    {
+      title: "Gamma (扩大了100000倍)",
+      dataIndex: "gamma",
+      render: (value: string) => parseFloat(value) || "-",
+    },
+    {
+      title: "Theta",
+      dataIndex: "theta",
+      render: (value: string) => value || "-",
+    },
+    {
+      title: "Vega",
+      dataIndex: "vega",
+      render: (value: string) => value || "-",
+    },
+    {
+      title: "IV",
+      dataIndex: "iv",
+      render: (value: string) => value || "-",
+    },
     {
       title: "DVOL",
       dataIndex: "dvol",
-      render: (value: number | null) =>
-        value != null ? Number(value).toFixed(2) : "-",
+      render: (value: string) => value || "-",
     },
-    // {
-    //   title: "创建时间",
-    //   dataIndex: "createdAt",
-    //   render: (text: string) => formatUTCToLocal(text),
-    // },
     {
       title: "操作",
       render: (_: any, record: OptionIndicator) => (
@@ -748,8 +770,8 @@ export default function OptionsMonitor() {
           </Form.Item>
           <Form.Item
             name="gamma"
-            label="Gamma"
-            rules={[{ required: true, message: "请输入Gamma" }]}
+            label="Gamma (去掉5位小数点，扩大100000倍)"
+            rules={[{ required: true, message: "请输入Gamma, 默认去掉小数点" }]}
           >
             <Input placeholder="请输入Gamma" />
           </Form.Item>
